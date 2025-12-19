@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Client;
 use App\Models\CreditItem;
+use Smalot\PdfParser\Parser as PdfParser;
 use Symfony\Component\DomCrawler\Crawler;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +71,100 @@ class CreditReportParserService
     }
 
     /**
+     * Parse a PDF credit report file and save credit items to database.
+     *
+     * This keeps the existing HTML-based import while allowing uploads of
+     * PDF reports that follow a simple, structured text format.
+     *
+     * Expected line format (you can adjust this to match real IdentityIQ PDFs):
+     * Bureau | Account Name | Account Number | Balance | Status | Reason (optional)
+     *
+     * Example:
+     * TransUnion | ABC BANK | 1234567890 | $1,250.00 | Charge Off | Inaccurate late payment
+     *
+     * @param Client $client The client whose report is being parsed
+     * @param string $pdfPath Absolute path to the uploaded PDF file
+     * @return int Number of items successfully imported
+     * @throws \Exception If parsing fails
+     */
+    public function parsePdfAndSave(Client $client, string $pdfPath): int
+    {
+        try {
+            DB::beginTransaction();
+
+            $parser = new PdfParser();
+            $pdf = $parser->parseFile($pdfPath);
+            $text = $pdf->getText();
+
+            $lines = preg_split('/\R+/', $text);
+
+            $importedCount = 0;
+
+            foreach ($lines as $line) {
+                $line = trim($line);
+
+                if ($line === '') {
+                    continue;
+                }
+
+                // Split by pipe and normalise segments
+                $parts = array_map('trim', explode('|', $line));
+
+                // Expect at least: bureau | account name | account number | balance | status
+                if (count($parts) < 5) {
+                    continue;
+                }
+
+                [$bureauRaw, $accountName, $accountNumber, $balanceRaw, $status] = $parts;
+                $reason = $parts[5] ?? null;
+
+                $bureau = strtolower($bureauRaw);
+
+                if (!in_array($bureau, ['transunion', 'experian', 'equifax'], true)) {
+                    continue;
+                }
+
+                // Normalise balance: remove everything except digits and dot
+                $balanceText = preg_replace('/[^0-9.]/', '', $balanceRaw);
+                $balance = floatval($balanceText);
+
+                // Avoid duplicates
+                $exists = CreditItem::where('client_id', $client->id)
+                    ->where('bureau', $bureau)
+                    ->where('account_number', $accountNumber)
+                    ->exists();
+
+                if ($exists) {
+                    continue;
+                }
+
+                CreditItem::create([
+                    'client_id' => $client->id,
+                    'bureau' => $bureau,
+                    'account_name' => $accountName,
+                    'account_number' => $accountNumber,
+                    'balance' => $balance,
+                    'reason' => $reason,
+                    'status' => $status,
+                    'dispute_status' => CreditItem::STATUS_PENDING,
+                ]);
+
+                $importedCount++;
+            }
+
+            DB::commit();
+
+            Log::info("Successfully imported {$importedCount} credit items from PDF for client {$client->id}");
+
+            return $importedCount;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Failed to parse credit report PDF: {$e->getMessage()}");
+            throw $e;
+        }
+    }
+
+    /**
      * Parse items for a specific bureau from the crawler.
      *
      * @param Crawler $crawler The DOM crawler instance
@@ -83,7 +178,7 @@ class CreditReportParserService
         try {
             // Example selectors - adjust based on actual IdentityIQ HTML structure
             // This is a flexible approach that looks for common patterns
-            
+
             // Try to find bureau-specific sections
             $bureauSection = $crawler->filter("[data-bureau=\"{$bureau}\"], .bureau-{$bureau}, #{$bureau}-section");
 

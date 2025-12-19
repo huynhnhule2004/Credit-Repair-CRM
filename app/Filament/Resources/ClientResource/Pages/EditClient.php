@@ -25,18 +25,33 @@ class EditClient extends EditRecord
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('info')
                 ->form([
+                    Forms\Components\FileUpload::make('report_pdf')
+                        ->label('Upload IdentityIQ PDF Report (optional)')
+                        ->helperText('Upload a PDF credit report exported from IdentityIQ. If provided, the PDF will be parsed instead of the HTML.')
+                        ->acceptedFileTypes(['application/pdf'])
+                        ->directory('credit-reports')
+                        ->disk('local')
+                        ->preserveFilenames(),
+
                     Forms\Components\Textarea::make('report_html')
-                        ->label('Paste IdentityIQ HTML Source Code')
-                        ->required()
+                        ->label('Paste IdentityIQ HTML Source Code (optional)')
                         ->rows(10)
                         ->placeholder('Paste the entire HTML source code from IdentityIQ here...')
-                        ->helperText('Right-click on the IdentityIQ page, select "View Page Source", copy all the HTML content and paste it here.'),
+                        ->helperText('Alternative to PDF: right-click on the IdentityIQ page, select "View Page Source", copy all the HTML content and paste it here.'),
                 ])
                 ->action(function (array $data, CreditReportParserService $parserService) {
                     try {
                         $client = $this->record;
-                        
-                        $importedCount = $parserService->parseAndSave($client, $data['report_html']);
+
+                        $importedCount = 0;
+
+                        // Prefer PDF if provided
+                        if (!empty($data['report_pdf'])) {
+                            $pdfPath = storage_path('app/' . $data['report_pdf']);
+                            $importedCount = $parserService->parsePdfAndSave($client, $pdfPath);
+                        } elseif (!empty($data['report_html'])) {
+                            $importedCount = $parserService->parseAndSave($client, $data['report_html']);
+                        }
 
                         Notification::make()
                             ->success()

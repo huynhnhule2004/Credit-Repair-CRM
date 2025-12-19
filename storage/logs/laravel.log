@@ -3303,3 +3303,292 @@ Did you mean one of these?
 [2025-12-19 08:14:02] local.INFO: Successfully imported 5 credit items for client 1  
 [2025-12-19 08:21:06] local.INFO: Successfully imported 6 credit items for client 2  
 [2025-12-19 08:21:32] local.INFO: Generated dispute letter for client 2 using template 1  
+[2025-12-19 09:01:43] local.ERROR: SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO) (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = 'ovcredit' and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO) (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = 'ovcredit' and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`) at D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php:825)
+[stacktrace]
+#0 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback('select exists (...', Array, Object(Closure))
+#1 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(398): Illuminate\\Database\\Connection->run('select exists (...', Array, Object(Closure))
+#2 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(344): Illuminate\\Database\\Connection->select('select exists (...', Array, true)
+#3 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(361): Illuminate\\Database\\Connection->selectOne('select exists (...', Array, true)
+#4 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Schema\\MySqlBuilder.php(45): Illuminate\\Database\\Connection->scalar('select exists (...')
+#5 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\DatabaseMigrationRepository.php(184): Illuminate\\Database\\Schema\\MySqlBuilder->hasTable('migrations')
+#6 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\Migrator.php(742): Illuminate\\Database\\Migrations\\DatabaseMigrationRepository->repositoryExists()
+#7 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(165): Illuminate\\Database\\Migrations\\Migrator->repositoryExists()
+#8 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\helpers.php(338): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->Illuminate\\Database\\Console\\Migrations\\{closure}(1)
+#9 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(165): retry(1, Object(Closure), 0, Object(Closure))
+#10 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(141): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->repositoryExists()
+#11 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(111): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->prepareDatabase()
+#12 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\Migrator.php(658): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->Illuminate\\Database\\Console\\Migrations\\{closure}()
+#13 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(110): Illuminate\\Database\\Migrations\\Migrator->usingConnection(NULL, Object(Closure))
+#14 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(89): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->runMigrations()
+#15 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#16 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#17 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#18 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#19 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#20 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(213): Illuminate\\Container\\Container->call(Array)
+#21 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Command\\Command.php(341): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#22 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(182): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#23 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(1102): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#24 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Database\\Console\\Migrations\\MigrateCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#25 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#26 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#27 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#28 D:\\Credit\\credit_repair\\artisan(33): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#29 {main}
+
+[previous exception] [object] (PDOException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO) at D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\Connector.php:66)
+[stacktrace]
+#0 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\Connector.php(66): PDO->__construct('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#1 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\Connector.php(44): Illuminate\\Database\\Connectors\\Connector->createPdoConnection('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#2 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\MySqlConnector.php(24): Illuminate\\Database\\Connectors\\Connector->createConnection('mysql:host=127....', Array, Array)
+#3 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\ConnectionFactory.php(185): Illuminate\\Database\\Connectors\\MySqlConnector->connect(Array)
+#4 [internal function]: Illuminate\\Database\\Connectors\\ConnectionFactory->Illuminate\\Database\\Connectors\\{closure}()
+#5 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(1231): call_user_func(Object(Closure))
+#6 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(1267): Illuminate\\Database\\Connection->getPdo()
+#7 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(512): Illuminate\\Database\\Connection->getReadPdo()
+#8 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(407): Illuminate\\Database\\Connection->getPdoForSelect(true)
+#9 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(812): Illuminate\\Database\\Connection->Illuminate\\Database\\{closure}('select exists (...', Array)
+#10 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback('select exists (...', Array, Object(Closure))
+#11 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(398): Illuminate\\Database\\Connection->run('select exists (...', Array, Object(Closure))
+#12 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(344): Illuminate\\Database\\Connection->select('select exists (...', Array, true)
+#13 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(361): Illuminate\\Database\\Connection->selectOne('select exists (...', Array, true)
+#14 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Schema\\MySqlBuilder.php(45): Illuminate\\Database\\Connection->scalar('select exists (...')
+#15 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\DatabaseMigrationRepository.php(184): Illuminate\\Database\\Schema\\MySqlBuilder->hasTable('migrations')
+#16 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\Migrator.php(742): Illuminate\\Database\\Migrations\\DatabaseMigrationRepository->repositoryExists()
+#17 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(165): Illuminate\\Database\\Migrations\\Migrator->repositoryExists()
+#18 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\helpers.php(338): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->Illuminate\\Database\\Console\\Migrations\\{closure}(1)
+#19 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(165): retry(1, Object(Closure), 0, Object(Closure))
+#20 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(141): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->repositoryExists()
+#21 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(111): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->prepareDatabase()
+#22 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\Migrator.php(658): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->Illuminate\\Database\\Console\\Migrations\\{closure}()
+#23 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(110): Illuminate\\Database\\Migrations\\Migrator->usingConnection(NULL, Object(Closure))
+#24 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(89): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->runMigrations()
+#25 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#26 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#27 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#28 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#29 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#30 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(213): Illuminate\\Container\\Container->call(Array)
+#31 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Command\\Command.php(341): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#32 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(182): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#33 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(1102): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#34 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Database\\Console\\Migrations\\MigrateCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#35 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#36 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#37 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#38 D:\\Credit\\credit_repair\\artisan(33): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#39 {main}
+"} 
+[2025-12-19 09:01:43] local.ERROR: SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO) (Connection: mysql, SQL: insert into `letter_templates` (`name`, `type`, `is_active`, `content`, `updated_at`, `created_at`) values (Standard Credit Dispute Letter, dispute, 1, <p>{{bureau_name}}<br>
+Consumer Relations Department<br>
+[Bureau Address]</p>
+
+<p><strong>RE: Dispute of Credit Report Errors</strong></p>
+
+<p>Dear {{bureau_name}} Representative,</p>
+
+<p>I am writing to formally dispute the following information on my credit report. According to the Fair Credit Reporting Act (FCRA), I have the right to request that you verify the accuracy of the items listed below.</p>
+
+<p>The following items contain inaccurate or incomplete information:</p>
+
+{{dispute_items}}
+
+<p>I am requesting that you conduct a thorough investigation into these matters. If you cannot verify these items as accurate and complete, I respectfully request that they be removed from my credit report immediately, as required by federal law.</p>
+
+<p>Under the FCRA, you have 30 days to complete your investigation. Please send me written verification of the results of your investigation.</p>
+
+<p>Thank you for your prompt attention to this matter.</p>
+
+<p><strong>Personal Information for Verification:</strong><br>
+Full Name: {{client_name}}<br>
+Date of Birth: {{client_dob}}<br>
+SSN: XXX-XX-{{client_ssn}}<br>
+Current Address: {{client_address}}, {{client_city}}, {{client_state}} {{client_zip}}<br>
+Phone: {{client_phone}}</p>, 2025-12-19 09:01:43, 2025-12-19 09:01:43)) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO) (Connection: mysql, SQL: insert into `letter_templates` (`name`, `type`, `is_active`, `content`, `updated_at`, `created_at`) values (Standard Credit Dispute Letter, dispute, 1, <p>{{bureau_name}}<br>
+
+Consumer Relations Department<br>
+
+[Bureau Address]</p>
+
+
+
+<p><strong>RE: Dispute of Credit Report Errors</strong></p>
+
+
+
+<p>Dear {{bureau_name}} Representative,</p>
+
+
+
+<p>I am writing to formally dispute the following information on my credit report. According to the Fair Credit Reporting Act (FCRA), I have the right to request that you verify the accuracy of the items listed below.</p>
+
+
+
+<p>The following items contain inaccurate or incomplete information:</p>
+
+
+
+{{dispute_items}}
+
+
+
+<p>I am requesting that you conduct a thorough investigation into these matters. If you cannot verify these items as accurate and complete, I respectfully request that they be removed from my credit report immediately, as required by federal law.</p>
+
+
+
+<p>Under the FCRA, you have 30 days to complete your investigation. Please send me written verification of the results of your investigation.</p>
+
+
+
+<p>Thank you for your prompt attention to this matter.</p>
+
+
+
+<p><strong>Personal Information for Verification:</strong><br>
+
+Full Name: {{client_name}}<br>
+
+Date of Birth: {{client_dob}}<br>
+
+SSN: XXX-XX-{{client_ssn}}<br>
+
+Current Address: {{client_address}}, {{client_city}}, {{client_state}} {{client_zip}}<br>
+
+Phone: {{client_phone}}</p>, 2025-12-19 09:01:43, 2025-12-19 09:01:43)) at D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php:825)
+[stacktrace]
+#0 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback('insert into `le...', Array, Object(Closure))
+#1 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\MySqlConnection.php(42): Illuminate\\Database\\Connection->run('insert into `le...', Array, Object(Closure))
+#2 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Query\\Processors\\MySqlProcessor.php(35): Illuminate\\Database\\MySqlConnection->insert('insert into `le...', Array, 'id')
+#3 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Query\\Builder.php(3766): Illuminate\\Database\\Query\\Processors\\MySqlProcessor->processInsertGetId(Object(Illuminate\\Database\\Query\\Builder), 'insert into `le...', Array, 'id')
+#4 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Builder.php(2120): Illuminate\\Database\\Query\\Builder->insertGetId(Array, 'id')
+#5 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(1359): Illuminate\\Database\\Eloquent\\Builder->__call('insertGetId', Array)
+#6 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(1324): Illuminate\\Database\\Eloquent\\Model->insertAndSetId(Object(Illuminate\\Database\\Eloquent\\Builder), Array)
+#7 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(1163): Illuminate\\Database\\Eloquent\\Model->performInsert(Object(Illuminate\\Database\\Eloquent\\Builder))
+#8 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Builder.php(1128): Illuminate\\Database\\Eloquent\\Model->save()
+#9 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\helpers.php(399): Illuminate\\Database\\Eloquent\\Builder->Illuminate\\Database\\Eloquent\\{closure}(Object(App\\Models\\LetterTemplate))
+#10 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Builder.php(1127): tap(Object(App\\Models\\LetterTemplate), Object(Closure))
+#11 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\Traits\\ForwardsCalls.php(23): Illuminate\\Database\\Eloquent\\Builder->create(Array)
+#12 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(2372): Illuminate\\Database\\Eloquent\\Model->forwardCallTo(Object(Illuminate\\Database\\Eloquent\\Builder), 'create', Array)
+#13 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(2384): Illuminate\\Database\\Eloquent\\Model->__call('create', Array)
+#14 D:\\Credit\\credit_repair\\database\\seeders\\LetterTemplateSeeder.php(16): Illuminate\\Database\\Eloquent\\Model::__callStatic('create', Array)
+#15 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): Database\\Seeders\\LetterTemplateSeeder->run()
+#16 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#17 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#18 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#19 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#20 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Seeder.php(188): Illuminate\\Container\\Container->call(Array, Array)
+#21 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Seeder.php(197): Illuminate\\Database\\Seeder->Illuminate\\Database\\{closure}()
+#22 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Seeds\\SeedCommand.php(70): Illuminate\\Database\\Seeder->__invoke()
+#23 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Concerns\\GuardsAttributes.php(155): Illuminate\\Database\\Console\\Seeds\\SeedCommand->Illuminate\\Database\\Console\\Seeds\\{closure}()
+#24 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Seeds\\SeedCommand.php(69): Illuminate\\Database\\Eloquent\\Model::unguarded(Object(Closure))
+#25 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): Illuminate\\Database\\Console\\Seeds\\SeedCommand->handle()
+#26 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#27 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#28 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#29 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#30 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(213): Illuminate\\Container\\Container->call(Array)
+#31 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Command\\Command.php(341): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#32 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(182): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#33 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(1102): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#34 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Database\\Console\\Seeds\\SeedCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#35 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#36 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#37 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#38 D:\\Credit\\credit_repair\\artisan(33): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#39 {main}
+
+[previous exception] [object] (PDOException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO) at D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\Connector.php:66)
+[stacktrace]
+#0 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\Connector.php(66): PDO->__construct('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#1 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\Connector.php(44): Illuminate\\Database\\Connectors\\Connector->createPdoConnection('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#2 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\MySqlConnector.php(24): Illuminate\\Database\\Connectors\\Connector->createConnection('mysql:host=127....', Array, Array)
+#3 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connectors\\ConnectionFactory.php(185): Illuminate\\Database\\Connectors\\MySqlConnector->connect(Array)
+#4 [internal function]: Illuminate\\Database\\Connectors\\ConnectionFactory->Illuminate\\Database\\Connectors\\{closure}()
+#5 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(1231): call_user_func(Object(Closure))
+#6 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\MySqlConnection.php(47): Illuminate\\Database\\Connection->getPdo()
+#7 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(812): Illuminate\\Database\\MySqlConnection->Illuminate\\Database\\{closure}('insert into `le...', Array)
+#8 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback('insert into `le...', Array, Object(Closure))
+#9 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\MySqlConnection.php(42): Illuminate\\Database\\Connection->run('insert into `le...', Array, Object(Closure))
+#10 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Query\\Processors\\MySqlProcessor.php(35): Illuminate\\Database\\MySqlConnection->insert('insert into `le...', Array, 'id')
+#11 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Query\\Builder.php(3766): Illuminate\\Database\\Query\\Processors\\MySqlProcessor->processInsertGetId(Object(Illuminate\\Database\\Query\\Builder), 'insert into `le...', Array, 'id')
+#12 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Builder.php(2120): Illuminate\\Database\\Query\\Builder->insertGetId(Array, 'id')
+#13 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(1359): Illuminate\\Database\\Eloquent\\Builder->__call('insertGetId', Array)
+#14 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(1324): Illuminate\\Database\\Eloquent\\Model->insertAndSetId(Object(Illuminate\\Database\\Eloquent\\Builder), Array)
+#15 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(1163): Illuminate\\Database\\Eloquent\\Model->performInsert(Object(Illuminate\\Database\\Eloquent\\Builder))
+#16 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Builder.php(1128): Illuminate\\Database\\Eloquent\\Model->save()
+#17 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\helpers.php(399): Illuminate\\Database\\Eloquent\\Builder->Illuminate\\Database\\Eloquent\\{closure}(Object(App\\Models\\LetterTemplate))
+#18 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Builder.php(1127): tap(Object(App\\Models\\LetterTemplate), Object(Closure))
+#19 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\Traits\\ForwardsCalls.php(23): Illuminate\\Database\\Eloquent\\Builder->create(Array)
+#20 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(2372): Illuminate\\Database\\Eloquent\\Model->forwardCallTo(Object(Illuminate\\Database\\Eloquent\\Builder), 'create', Array)
+#21 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Model.php(2384): Illuminate\\Database\\Eloquent\\Model->__call('create', Array)
+#22 D:\\Credit\\credit_repair\\database\\seeders\\LetterTemplateSeeder.php(16): Illuminate\\Database\\Eloquent\\Model::__callStatic('create', Array)
+#23 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): Database\\Seeders\\LetterTemplateSeeder->run()
+#24 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#25 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#26 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#27 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#28 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Seeder.php(188): Illuminate\\Container\\Container->call(Array, Array)
+#29 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Seeder.php(197): Illuminate\\Database\\Seeder->Illuminate\\Database\\{closure}()
+#30 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Seeds\\SeedCommand.php(70): Illuminate\\Database\\Seeder->__invoke()
+#31 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Concerns\\GuardsAttributes.php(155): Illuminate\\Database\\Console\\Seeds\\SeedCommand->Illuminate\\Database\\Console\\Seeds\\{closure}()
+#32 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Seeds\\SeedCommand.php(69): Illuminate\\Database\\Eloquent\\Model::unguarded(Object(Closure))
+#33 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): Illuminate\\Database\\Console\\Seeds\\SeedCommand->handle()
+#34 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#35 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#36 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#37 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#38 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(213): Illuminate\\Container\\Container->call(Array)
+#39 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Command\\Command.php(341): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#40 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(182): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#41 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(1102): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#42 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Database\\Console\\Seeds\\SeedCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#43 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#44 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#45 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#46 D:\\Credit\\credit_repair\\artisan(33): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#47 {main}
+"} 
+[2025-12-19 09:07:41] local.ERROR: Aborted. {"exception":"[object] (Symfony\\Component\\Console\\Exception\\MissingInputException(code: 0): Aborted. at D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Helper\\QuestionHelper.php:608)
+[stacktrace]
+#0 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Helper\\QuestionHelper.php(512): Symfony\\Component\\Console\\Helper\\QuestionHelper->doReadInput(Resource id #1)
+#1 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Helper\\QuestionHelper.php(125): Symfony\\Component\\Console\\Helper\\QuestionHelper->readInput(Resource id #1, Object(Symfony\\Component\\Console\\Question\\Question))
+#2 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Helper\\QuestionHelper.php(62): Symfony\\Component\\Console\\Helper\\QuestionHelper->doAsk(Resource id #1, Object(Illuminate\\Console\\OutputStyle), Object(Symfony\\Component\\Console\\Question\\Question))
+#3 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Style\\SymfonyStyle.php(307): Symfony\\Component\\Console\\Helper\\QuestionHelper->ask(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle), Object(Symfony\\Component\\Console\\Question\\Question))
+#4 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\OutputStyle.php(59): Symfony\\Component\\Console\\Style\\SymfonyStyle->askQuestion(Object(Symfony\\Component\\Console\\Question\\Question))
+#5 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\View\\Components\\Ask.php(20): Illuminate\\Console\\OutputStyle->askQuestion(Object(Symfony\\Component\\Console\\Question\\Question))
+#6 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\View\\Components\\Component.php(118): Illuminate\\Console\\View\\Components\\Ask->Illuminate\\Console\\View\\Components\\{closure}()
+#7 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\View\\Components\\Ask.php(19): Illuminate\\Console\\View\\Components\\Component->usingQuestionHelper(Object(Closure))
+#8 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\View\\Components\\Factory.php(60): Illuminate\\Console\\View\\Components\\Ask->render('Name', NULL)
+#9 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Concerns\\ConfiguresPrompts.php(39): Illuminate\\Console\\View\\Components\\Factory->__call('ask', Array)
+#10 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Concerns\\ConfiguresPrompts.php(126): Illuminate\\Console\\Command->Illuminate\\Console\\Concerns\\{closure}()
+#11 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Concerns\\ConfiguresPrompts.php(38): Illuminate\\Console\\Command->promptUntilValid(Object(Closure), true, NULL)
+#12 D:\\Credit\\credit_repair\\vendor\\laravel\\prompts\\src\\Concerns\\Fallback.php(59): Illuminate\\Console\\Command->Illuminate\\Console\\Concerns\\{closure}(Object(Laravel\\Prompts\\TextPrompt))
+#13 D:\\Credit\\credit_repair\\vendor\\laravel\\prompts\\src\\Prompt.php(108): Laravel\\Prompts\\Prompt->fallback()
+#14 D:\\Credit\\credit_repair\\vendor\\laravel\\prompts\\src\\helpers.php(21): Laravel\\Prompts\\Prompt->prompt()
+#15 D:\\Credit\\credit_repair\\vendor\\filament\\filament\\src\\Commands\\MakeUserCommand.php(38): Laravel\\Prompts\\text('Name', '', '', true)
+#16 D:\\Credit\\credit_repair\\vendor\\filament\\filament\\src\\Commands\\MakeUserCommand.php(62): Filament\\Commands\\MakeUserCommand->getUserData()
+#17 D:\\Credit\\credit_repair\\vendor\\filament\\filament\\src\\Commands\\MakeUserCommand.php(100): Filament\\Commands\\MakeUserCommand->createUser()
+#18 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): Filament\\Commands\\MakeUserCommand->handle()
+#19 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#20 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#21 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#22 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#23 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(213): Illuminate\\Container\\Container->call(Array)
+#24 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Command\\Command.php(341): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#25 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(182): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#26 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(1102): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#27 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(Filament\\Commands\\MakeUserCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#28 D:\\Credit\\credit_repair\\vendor\\symfony\\console\\Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#29 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#30 D:\\Credit\\credit_repair\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#31 D:\\Credit\\credit_repair\\artisan(33): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#32 {main}
+"} 
+[2025-12-19 09:24:47] local.INFO: Successfully imported 4 credit items for client 1  
+[2025-12-19 09:39:52] local.INFO: Successfully imported 4 credit items from PDF for client 1  
+[2025-12-19 09:40:54] local.INFO: Successfully imported 0 credit items for client 1  
+[2025-12-19 09:42:31] local.INFO: Successfully imported 4 credit items for client 1  
+[2025-12-19 09:43:30] local.INFO: Successfully imported 6 credit items from PDF for client 1  
+[2025-12-19 09:44:32] local.INFO: Generated dispute letter for client 1 using template 2  
+[2025-12-19 09:48:13] local.INFO: Successfully imported 6 credit items from PDF for client 1  
+[2025-12-19 09:48:32] local.INFO: Generated dispute letter for client 1 using template 1  
