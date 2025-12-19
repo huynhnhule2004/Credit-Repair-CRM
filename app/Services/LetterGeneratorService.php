@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Client;
 use App\Models\LetterTemplate;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -67,7 +68,9 @@ class LetterGeneratorService
             '{{client_phone}}' => $client->phone,
             '{{client_email}}' => $client->email ?? '',
             '{{client_ssn}}' => $client->ssn,
-            '{{client_dob}}' => $client->dob->format('m/d/Y'),
+            '{{client_dob}}' => $client->dob
+                ? Carbon::parse($client->dob)->format('m/d/Y')
+                : '',
             '{{current_date}}' => now()->format('F d, Y'),
         ];
 

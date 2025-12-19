@@ -268,30 +268,62 @@ class CreditItemsRelationManager extends RelationManager
                                 if ($data['separate_by_bureau'] ?? false) {
                                     // Generate separate PDFs for each bureau
                                     $pdfs = $letterService->generateByBureau($client, $template, $selectedItems);
-                                    
-                                    // For now, just download the first one
-                                    // In production, you might want to create a ZIP file
+
+                                    // For now, save the first generated letter and show a download link,
+                                    // without redirecting away from the Filament page.
                                     $firstBureau = array_key_first($pdfs);
                                     $pdf = $pdfs[$firstBureau];
-                                    
+
+                                    $fileName = 'dispute_letter_' . $client->id . '_' . $firstBureau . '_' . date('Ymd_His') . '.pdf';
+                                    $fullPath = storage_path('app/public/letters/' . $fileName);
+
+                                    if (!file_exists(dirname($fullPath))) {
+                                        mkdir(dirname($fullPath), 0755, true);
+                                    }
+
+                                    $pdf->save($fullPath);
+
+                                    $url = asset('storage/letters/' . $fileName);
+
                                     Notification::make()
                                         ->success()
                                         ->title('Letters Generated')
-                                        ->body("Generated " . count($pdfs) . " letter(s) - downloading first one.")
+                                        ->body('Generated ' . count($pdfs) . ' letter(s). Click below to download the first one.')
+                                        ->actions([
+                                            \Filament\Notifications\Actions\Action::make('download')
+                                                ->label('Download PDF')
+                                                ->url($url)
+                                                ->openUrlInNewTab(),
+                                        ])
+                                        ->persistent()
                                         ->send();
-
-                                    return $pdf->download();
                                 } else {
-                                    // Generate single PDF with all items
+                                    // Generate single PDF with all items, save it and show a download link
                                     $pdf = $letterService->generate($client, $template, $selectedItems);
+
+                                    $fileName = 'dispute_letter_' . $client->id . '_' . date('Ymd_His') . '.pdf';
+                                    $fullPath = storage_path('app/public/letters/' . $fileName);
+
+                                    if (!file_exists(dirname($fullPath))) {
+                                        mkdir(dirname($fullPath), 0755, true);
+                                    }
+
+                                    $pdf->save($fullPath);
+
+                                    $url = asset('storage/letters/' . $fileName);
 
                                     Notification::make()
                                         ->success()
                                         ->title('Letter Generated')
-                                        ->body('Dispute letter generated successfully.')
+                                        ->body('Dispute letter generated successfully. Click below to download.')
+                                        ->actions([
+                                            \Filament\Notifications\Actions\Action::make('download')
+                                                ->label('Download PDF')
+                                                ->url($url)
+                                                ->openUrlInNewTab(),
+                                        ])
+                                        ->persistent()
                                         ->send();
-
-                                    return $pdf->download();
                                 }
                             } catch (\Exception $e) {
                                 Notification::make()
