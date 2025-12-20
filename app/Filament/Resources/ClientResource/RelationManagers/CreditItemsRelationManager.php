@@ -25,40 +25,77 @@ class CreditItemsRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('bureau')
-                    ->options(CreditItem::getBureauOptions())
-                    ->required(),
+                Forms\Components\Section::make('Account Information')
+                    ->schema([
+                        Forms\Components\Select::make('bureau')
+                            ->options(CreditItem::getBureauOptions())
+                            ->required(),
 
-                Forms\Components\TextInput::make('account_name')
-                    ->required()
-                    ->maxLength(255)
-                    ->label('Account Name'),
+                        Forms\Components\TextInput::make('account_name')
+                            ->required()
+                            ->maxLength(255)
+                            ->label('Account Name'),
 
-                Forms\Components\TextInput::make('account_number')
-                    ->maxLength(255)
-                    ->label('Account Number'),
+                        Forms\Components\TextInput::make('account_number')
+                            ->maxLength(255)
+                            ->label('Account Number')
+                            ->placeholder('e.g., 44445555****'),
 
-                Forms\Components\TextInput::make('balance')
-                    ->numeric()
-                    ->prefix('$')
-                    ->default(0)
-                    ->label('Balance'),
+                        Forms\Components\TextInput::make('account_type')
+                            ->maxLength(255)
+                            ->label('Account Type')
+                            ->placeholder('e.g., Credit Card, Loan, Mortgage')
+                            ->helperText('Type of credit account'),
 
-                Forms\Components\Textarea::make('reason')
-                    ->maxLength(65535)
-                    ->columnSpanFull()
-                    ->label('Reason'),
+                        Forms\Components\DatePicker::make('date_opened')
+                            ->label('Date Opened')
+                            ->displayFormat('M d, Y')
+                            ->maxDate(now()),
+                    ])
+                    ->columns(2),
 
-                Forms\Components\TextInput::make('status')
-                    ->maxLength(255)
-                    ->label('Status')
-                    ->placeholder('e.g., Late Payment, Collection'),
+                Forms\Components\Section::make('Financial Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('balance')
+                            ->numeric()
+                            ->prefix('$')
+                            ->default(0)
+                            ->label('Current Balance'),
 
-                Forms\Components\Select::make('dispute_status')
-                    ->options(CreditItem::getDisputeStatusOptions())
-                    ->required()
-                    ->default(CreditItem::STATUS_PENDING)
-                    ->label('Dispute Status'),
+                        Forms\Components\TextInput::make('high_limit')
+                            ->numeric()
+                            ->prefix('$')
+                            ->label('Credit Limit / Loan Amount')
+                            ->helperText('High credit limit or original loan amount'),
+
+                        Forms\Components\TextInput::make('monthly_pay')
+                            ->numeric()
+                            ->prefix('$')
+                            ->label('Monthly Payment')
+                            ->helperText('Monthly payment amount'),
+                    ])
+                    ->columns(3),
+
+                Forms\Components\Section::make('Status & Notes')
+                    ->schema([
+                        Forms\Components\TextInput::make('status')
+                            ->maxLength(255)
+                            ->label('Pay Status')
+                            ->placeholder('e.g., Current, Late Payment, Collection'),
+
+                        Forms\Components\Select::make('dispute_status')
+                            ->options(CreditItem::getDisputeStatusOptions())
+                            ->required()
+                            ->default(CreditItem::STATUS_PENDING)
+                            ->label('Dispute Status'),
+
+                        Forms\Components\Textarea::make('reason')
+                            ->maxLength(65535)
+                            ->columnSpanFull()
+                            ->label('Comments / Reason')
+                            ->rows(3),
+                    ])
+                    ->columns(2),
             ]);
     }
 
@@ -89,10 +126,35 @@ class CreditItemsRelationManager extends RelationManager
                     ->label('Account #')
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('account_type')
+                    ->searchable()
+                    ->label('Type')
+                    ->toggleable()
+                    ->badge()
+                    ->color('gray'),
+
                 Tables\Columns\TextColumn::make('balance')
                     ->money('USD')
                     ->sortable()
                     ->label('Balance'),
+
+                Tables\Columns\TextColumn::make('high_limit')
+                    ->money('USD')
+                    ->sortable()
+                    ->label('Credit Limit')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('monthly_pay')
+                    ->money('USD')
+                    ->sortable()
+                    ->label('Monthly Pay')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('date_opened')
+                    ->date()
+                    ->sortable()
+                    ->label('Opened')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('status')
                     ->searchable()
@@ -247,59 +309,99 @@ class CreditItemsRelationManager extends RelationManager
                         ->label('Generate Dispute Letter')
                         ->icon('heroicon-o-document-text')
                         ->color('primary')
-                        ->form([
-                            Forms\Components\Radio::make('template_choice')
-                                ->label('Select Letter Template')
-                                ->options(LetterTemplate::active()->pluck('name', 'id')->toArray())
-                                ->required()
-                                ->helperText('Choose a template for the dispute letter'),
+                        ->form(function ($livewire) {
+                            $client = $livewire->getOwnerRecord();
+                            $selectedItems = collect($livewire->mountedTableBulkActionData['records'] ?? []);
+                            
+                            return [
+                                Forms\Components\Radio::make('template_choice')
+                                    ->label('Select Letter Template')
+                                    ->options(LetterTemplate::active()->pluck('name', 'id')->toArray())
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set) use ($client, $selectedItems) {
+                                        if ($state) {
+                                            $template = LetterTemplate::find($state);
+                                            if ($template) {
+                                                $letterService = app(\App\Services\LetterGeneratorService::class);
+                                                $preparedContent = $letterService->prepareContent($client, $template, $selectedItems);
+                                                $set('letter_content', $preparedContent);
+                                            }
+                                        }
+                                    })
+                                    ->helperText('Choose a template for the dispute letter'),
 
-                            Forms\Components\Checkbox::make('separate_by_bureau')
-                                ->label('Generate Separate Letters by Bureau')
-                                ->helperText('Create one letter per bureau instead of combining all items')
-                                ->default(false),
-                        ])
+                                Forms\Components\RichEditor::make('letter_content')
+                                    ->label('Letter Content (Preview & Edit)')
+                                    ->required()
+                                    ->helperText('Preview the letter content with placeholders replaced. You can edit this content before generating the PDF.')
+                                    ->toolbarButtons([
+                                        'bold',
+                                        'italic',
+                                        'underline',
+                                        'strike',
+                                        'bulletList',
+                                        'orderedList',
+                                        'link',
+                                        'undo',
+                                        'redo',
+                                    ])
+                                    ->columnSpanFull()
+                                    ->grow(),
+
+                                Forms\Components\Checkbox::make('separate_by_bureau')
+                                    ->label('Generate Separate Letters by Bureau')
+                                    ->helperText('Create one letter per bureau instead of combining all items')
+                                    ->default(false),
+                            ];
+                        })
                         ->action(function ($records, array $data, LetterGeneratorService $letterService) {
                             try {
                                 $template = LetterTemplate::findOrFail($data['template_choice']);
                                 $client = $this->getOwnerRecord();
                                 $selectedItems = collect($records);
+                                
+                                // Use custom content if provided, otherwise use template
+                                $customContent = $data['letter_content'] ?? null;
 
                                 if ($data['separate_by_bureau'] ?? false) {
                                     // Generate separate PDFs for each bureau
-                                    $pdfs = $letterService->generateByBureau($client, $template, $selectedItems);
+                                    $itemsByBureau = $selectedItems->groupBy('bureau');
+                                    $pdfs = [];
+                                    $downloadUrls = [];
+                                    
+                                    foreach ($itemsByBureau as $bureau => $items) {
+                                        $pdfs[$bureau] = $letterService->generate($client, $template, $items, $customContent);
+                                        
+                                        $fileName = 'dispute_letter_' . $client->id . '_' . $bureau . '_' . date('Ymd_His') . '.pdf';
+                                        $fullPath = storage_path('app/public/letters/' . $fileName);
 
-                                    // For now, save the first generated letter and show a download link,
-                                    // without redirecting away from the Filament page.
-                                    $firstBureau = array_key_first($pdfs);
-                                    $pdf = $pdfs[$firstBureau];
+                                        if (!file_exists(dirname($fullPath))) {
+                                            mkdir(dirname($fullPath), 0755, true);
+                                        }
 
-                                    $fileName = 'dispute_letter_' . $client->id . '_' . $firstBureau . '_' . date('Ymd_His') . '.pdf';
-                                    $fullPath = storage_path('app/public/letters/' . $fileName);
-
-                                    if (!file_exists(dirname($fullPath))) {
-                                        mkdir(dirname($fullPath), 0755, true);
+                                        $pdfs[$bureau]->save($fullPath);
+                                        $downloadUrls[$bureau] = asset('storage/letters/' . $fileName);
                                     }
 
-                                    $pdf->save($fullPath);
-
-                                    $url = asset('storage/letters/' . $fileName);
+                                    $firstBureau = array_key_first($downloadUrls);
+                                    $firstUrl = $downloadUrls[$firstBureau];
 
                                     Notification::make()
                                         ->success()
                                         ->title('Letters Generated')
-                                        ->body('Generated ' . count($pdfs) . ' letter(s). Click below to download the first one.')
+                                        ->body('Generated ' . count($pdfs) . ' letter(s). Click below to download.')
                                         ->actions([
                                             \Filament\Notifications\Actions\Action::make('download')
-                                                ->label('Download PDF')
-                                                ->url($url)
+                                                ->label('Download PDF (' . ucfirst($firstBureau) . ')')
+                                                ->url($firstUrl)
                                                 ->openUrlInNewTab(),
                                         ])
                                         ->persistent()
                                         ->send();
                                 } else {
                                     // Generate single PDF with all items, save it and show a download link
-                                    $pdf = $letterService->generate($client, $template, $selectedItems);
+                                    $pdf = $letterService->generate($client, $template, $selectedItems, $customContent);
 
                                     $fileName = 'dispute_letter_' . $client->id . '_' . date('Ymd_His') . '.pdf';
                                     $fullPath = storage_path('app/public/letters/' . $fileName);
@@ -341,7 +443,7 @@ class CreditItemsRelationManager extends RelationManager
                             }
                         })
                         ->deselectRecordsAfterCompletion()
-                        ->modalWidth('md'),
+                        ->modalWidth('4xl'),
 
                     Tables\Actions\BulkAction::make('mark_as_sent')
                         ->label('Mark as Sent')

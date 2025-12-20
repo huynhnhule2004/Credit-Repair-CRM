@@ -51,16 +51,26 @@ class EditClient extends EditRecord
                             $importedCount = $parserService->parsePdfAndSave($client, $pdfPath);
                         } elseif (!empty($data['report_html'])) {
                             $importedCount = $parserService->parseAndSave($client, $data['report_html']);
+                        } else {
+                            throw new \Exception('Please provide either a PDF file or HTML source code.');
                         }
 
-                        Notification::make()
-                            ->success()
-                            ->title('Import Successful')
-                            ->body("Successfully imported {$importedCount} credit item(s).")
-                            ->send();
+                        if ($importedCount > 0) {
+                            Notification::make()
+                                ->success()
+                                ->title('Import Successful')
+                                ->body("Successfully imported {$importedCount} credit item(s).")
+                                ->send();
 
-                        // Refresh the page to show new items in relation manager
-                        redirect()->route('filament.admin.resources.clients.edit', ['record' => $client->id]);
+                            // Refresh the page to show new items in relation manager
+                            $this->redirect(route('filament.admin.resources.clients.edit', ['record' => $client->id]));
+                        } else {
+                            Notification::make()
+                                ->warning()
+                                ->title('Import Completed')
+                                ->body('No credit items were imported. Please check the file format and try again.')
+                                ->send();
+                        }
                     } catch (\Exception $e) {
                         Notification::make()
                             ->danger()

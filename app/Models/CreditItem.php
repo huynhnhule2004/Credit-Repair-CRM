@@ -21,7 +21,14 @@ class CreditItem extends Model
         'bureau',
         'account_name',
         'account_number',
+        'account_type',
+        'date_opened',
+        'date_last_active',
+        'date_reported',
         'balance',
+        'high_limit',
+        'monthly_pay',
+        'past_due',
         'reason',
         'status',
         'dispute_status',
@@ -34,6 +41,12 @@ class CreditItem extends Model
      */
     protected $casts = [
         'balance' => 'decimal:2',
+        'high_limit' => 'decimal:2',
+        'monthly_pay' => 'decimal:2',
+        'past_due' => 'decimal:2',
+        'date_opened' => 'date',
+        'date_last_active' => 'date',
+        'date_reported' => 'date',
     ];
 
     /**

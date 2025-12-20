@@ -79,4 +79,28 @@ class Client extends Model
     {
         return $this->hasMany(CreditItem::class)->where('bureau', $bureau);
     }
+
+    /**
+     * Get credit scores for this client.
+     */
+    public function creditScores(): HasMany
+    {
+        return $this->hasMany(CreditScore::class);
+    }
+
+    /**
+     * Get personal profiles for this client.
+     */
+    public function personalProfiles(): HasMany
+    {
+        return $this->hasMany(PersonalProfile::class);
+    }
+
+    /**
+     * Get personal profile for specific bureau.
+     */
+    public function personalProfileByBureau(string $bureau): ?PersonalProfile
+    {
+        return $this->personalProfiles()->where('bureau', $bureau)->first();
+    }
 }

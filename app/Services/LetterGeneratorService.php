@@ -18,14 +18,18 @@ class LetterGeneratorService
      * @param Client $client The client for whom the letter is being generated
      * @param LetterTemplate $template The letter template to use
      * @param Collection $selectedItems Collection of CreditItem models to dispute
+     * @param string|null $customContent Optional custom content to use instead of template
      * @return PdfBuilder The PDF builder instance ready to download
      * @throws \Exception If generation fails
      */
-    public function generate(Client $client, LetterTemplate $template, Collection $selectedItems): PdfBuilder
+    public function generate(Client $client, LetterTemplate $template, Collection $selectedItems, ?string $customContent = null): PdfBuilder
     {
         try {
+            // Use custom content if provided, otherwise use template content
+            $baseContent = $customContent ?? $template->content;
+
             // Replace placeholders in template content
-            $content = $this->replaceTemplatePlaceholders($template->content, $client, $selectedItems);
+            $content = $this->replaceTemplatePlaceholders($baseContent, $client, $selectedItems);
 
             // Generate PDF using Spatie Laravel PDF
             $pdf = Pdf::view('pdf.dispute-letter', [
@@ -44,6 +48,19 @@ class LetterGeneratorService
             Log::error("Failed to generate letter: {$e->getMessage()}");
             throw $e;
         }
+    }
+
+    /**
+     * Prepare letter content with placeholders replaced (for preview/editing).
+     *
+     * @param Client $client
+     * @param LetterTemplate $template
+     * @param Collection $selectedItems
+     * @return string The processed content ready for editing
+     */
+    public function prepareContent(Client $client, LetterTemplate $template, Collection $selectedItems): string
+    {
+        return $this->replaceTemplatePlaceholders($template->content, $client, $selectedItems);
     }
 
     /**
@@ -209,9 +226,10 @@ class LetterGeneratorService
      * @param Client $client
      * @param LetterTemplate $template
      * @param Collection $selectedItems
+     * @param string|null $customContent Optional custom content to use instead of template
      * @return array<string, PdfBuilder> Array of PDFs keyed by bureau name
      */
-    public function generateByBureau(Client $client, LetterTemplate $template, Collection $selectedItems): array
+    public function generateByBureau(Client $client, LetterTemplate $template, Collection $selectedItems, ?string $customContent = null): array
     {
         $pdfs = [];
 
@@ -219,7 +237,7 @@ class LetterGeneratorService
         $itemsByBureau = $selectedItems->groupBy('bureau');
 
         foreach ($itemsByBureau as $bureau => $items) {
-            $pdfs[$bureau] = $this->generate($client, $template, $items);
+            $pdfs[$bureau] = $this->generate($client, $template, $items, $customContent);
         }
 
         return $pdfs;
