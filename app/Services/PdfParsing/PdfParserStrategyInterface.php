@@ -23,3 +23,7 @@ interface PdfParserStrategyInterface
     public function getName(): string;
 }
 
+
+
+
+

@@ -80,8 +80,15 @@ class CreditItemsRelationManager extends RelationManager
                     ->schema([
                         Forms\Components\TextInput::make('status')
                             ->maxLength(255)
-                            ->label('Pay Status')
-                            ->placeholder('e.g., Current, Late Payment, Collection'),
+                            ->label('Status (Account Status)')
+                            ->placeholder('e.g., Open, Closed, Paid')
+                            ->helperText('Account status - ít ảnh hưởng logic'),
+
+                        Forms\Components\TextInput::make('payment_status')
+                            ->maxLength(255)
+                            ->label('Payment Status')
+                            ->placeholder('e.g., Current, Late 30 Days, Collection')
+                            ->helperText('QUAN TRỌNG - Dùng để quyết định màu đỏ/xanh'),
 
                         Forms\Components\Select::make('dispute_status')
                             ->options(CreditItem::getDisputeStatusOptions())
@@ -158,8 +165,23 @@ class CreditItemsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('status')
                     ->searchable()
-                    ->label('Status')
-                    ->toggleable()
+                    ->label('Status (Account Status)')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('payment_status')
+                    ->searchable()
+                    ->label('Payment Status')
+                    ->badge()
+                    ->color(fn (?string $state): string => match (true) {
+                        empty($state) => 'gray',
+                        stripos($state ?? '', 'current') !== false || stripos($state ?? '', 'paid as agreed') !== false => 'success',
+                        stripos($state ?? '', 'late') !== false || stripos($state ?? '', 'delinquent') !== false => 'danger',
+                        stripos($state ?? '', 'collection') !== false => 'warning',
+                        default => 'info',
+                    })
+                    ->formatStateUsing(fn (?string $state): string => $state ? strtoupper($state) : 'N/A')
+                    ->sortable()
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('dispute_status')

@@ -63,7 +63,8 @@ class EditClient extends EditRecord
                                 ->send();
 
                             // Refresh the page to show new items in relation manager
-                            $this->redirect(route('filament.admin.resources.clients.edit', ['record' => $client->id]));
+                            // FIXED: Use redirectRoute for Livewire compatibility
+                            return redirect()->route('filament.admin.resources.clients.edit', ['record' => $client->id]);
                         } else {
                             Notification::make()
                                 ->warning()

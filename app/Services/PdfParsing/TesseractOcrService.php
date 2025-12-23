@@ -175,4 +175,3 @@ class TesseractOcrService implements OcrServiceInterface
         return $returnCode === 0;
     }
 }
-

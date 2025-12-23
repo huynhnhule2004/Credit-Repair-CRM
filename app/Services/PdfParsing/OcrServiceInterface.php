@@ -23,3 +23,7 @@ interface OcrServiceInterface
     public function needsOcr(string $pdfPath, string $extractedText): bool;
 }
 
+
+
+
+

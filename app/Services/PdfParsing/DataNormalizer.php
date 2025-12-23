@@ -14,21 +14,21 @@ class DataNormalizer
     public function normalizeAccountNumber(string $accountNumber): string
     {
         $accountNumber = trim($accountNumber);
-        
+
         // Remove common separators
         $accountNumber = str_replace(['-', ' ', '_'], '', $accountNumber);
-        
+
         // Extract last 4 digits if masked
         // Pattern: XXXX1234, 1234****, ****1234, etc.
         if (preg_match('/(\d{4})(?:[X\*]+|\d*)$/', $accountNumber, $matches)) {
             return $matches[1];
         }
-        
+
         // If fully masked, try to extract any digits
         if (preg_match('/(\d+)/', $accountNumber, $matches)) {
             return $matches[1];
         }
-        
+
         // Return as-is if no pattern matches
         return $accountNumber;
     }
@@ -47,18 +47,29 @@ class DataNormalizer
         }
 
         $balance = trim((string) $balance);
-        
+
         // Remove currency symbols
         $balance = preg_replace('/[^\d.,\-]/', '', $balance);
-        
-        // Handle European format (1.200,00)
-        if (preg_match('/^(\d{1,3}(?:\.\d{3})*),(\d+)$/', $balance, $matches)) {
-            $balance = str_replace('.', '', $matches[1]) . '.' . $matches[2];
+
+        // US format: comma as thousand separator (e.g., 2,500 or 15,000)
+        // Check if it's US format: digits, comma, then 3 digits (thousand separator)
+        // Pattern: \d+,\d{3} (e.g., 2,500, 15,000)
+        // IMPORTANT: Check US format FIRST before European format
+        if (preg_match('/^(\d+),(\d{3})$/', $balance, $matches)) {
+            // US format: remove comma (thousand separator)
+            $balance = $matches[1] . $matches[2];
         } else {
-            // Remove thousand separators (commas or dots)
-            $balance = str_replace(',', '', $balance);
+            // Handle European format (1.200,00) - dot as thousand separator, comma as decimal
+            // IMPORTANT: Only match if there are dots (thousand separators) before the comma
+            if (preg_match('/^(\d{1,3}(?:\.\d{3})+),(\d+)$/', $balance, $matches)) {
+                // European format: has dots before comma
+                $balance = str_replace('.', '', $matches[1]) . '.' . $matches[2];
+            } else {
+                // Remove thousand separators (commas or dots) - fallback
+                $balance = str_replace(',', '', $balance);
+            }
         }
-        
+
         return (float) $balance;
     }
 
@@ -76,7 +87,7 @@ class DataNormalizer
         }
 
         $status = strtolower(trim($status));
-        
+
         // Status mapping
         $statusMap = [
             // Charged Off variations
@@ -87,31 +98,31 @@ class DataNormalizer
             'chrg off' => 'CHARGED_OFF',
             'c/o' => 'CHARGED_OFF',
             'co' => 'CHARGED_OFF',
-            
+
             // Collection variations
             'collection' => 'COLLECTION',
             'collections' => 'COLLECTION',
             'in collection' => 'COLLECTION',
-            
+
             // Late Payment variations
             'late payment' => 'LATE_PAYMENT',
             'late' => 'LATE_PAYMENT',
             'delinquent' => 'LATE_PAYMENT',
             'delinquency' => 'LATE_PAYMENT',
-            
+
             // Default variations
             'default' => 'DEFAULT',
             'defaulted' => 'DEFAULT',
-            
+
             // Closed variations
             'closed' => 'CLOSED',
             'closed account' => 'CLOSED',
-            
+
             // Paid variations
             'paid' => 'PAID',
             'paid off' => 'PAID',
             'satisfied' => 'PAID',
-            
+
             // Current variations
             'current' => 'CURRENT',
             'open' => 'CURRENT',
@@ -143,7 +154,7 @@ class DataNormalizer
     public function normalizeBureau(string $bureau): ?string
     {
         $bureau = strtolower(trim($bureau));
-        
+
         if (stripos($bureau, 'transunion') !== false || stripos($bureau, 'trans union') !== false) {
             return 'transunion';
         }
@@ -153,7 +164,7 @@ class DataNormalizer
         if (stripos($bureau, 'equifax') !== false) {
             return 'equifax';
         }
-        
+
         return null;
     }
 
@@ -166,13 +177,13 @@ class DataNormalizer
     public function normalizeAccountName(string $accountName): string
     {
         $accountName = trim($accountName);
-        
+
         // Remove multiple spaces
         $accountName = preg_replace('/\s+/', ' ', $accountName);
-        
+
         // Remove common prefixes/suffixes that might be noise
         $accountName = preg_replace('/^(THE|A|AN)\s+/i', '', $accountName);
-        
+
         return $accountName;
     }
 
@@ -194,4 +205,7 @@ class DataNormalizer
         ];
     }
 }
+
+
+
 

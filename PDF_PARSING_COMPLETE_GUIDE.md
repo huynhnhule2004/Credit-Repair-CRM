@@ -1,1403 +1,1510 @@
-# 📄 Hướng Dẫn Đầy Đủ: Đọc và Parse File PDF Credit Report
+# PDF Parsing Complete Guide
 
 ## 📋 Mục Lục
 
-1. [Tổng Quan Hệ Thống](#tổng-quan-hệ-thống)
-2. [Kiến Trúc và Components](#kiến-trúc-và-components)
-3. [7 Chiến Lược Parsing](#7-chiến-lược-parsing)
-4. [IdentityIQ Full Parser](#identityiq-full-parser)
-5. [OCR Support cho Scanned PDFs](#ocr-support-cho-scanned-pdfs)
-6. [Data Normalization](#data-normalization)
-7. [Deduplication Logic](#deduplication-logic)
-8. [Cấu Trúc Dữ Liệu Output](#cấu-trúc-dữ-liệu-output)
-9. [Discrepancy Detection](#discrepancy-detection)
-10. [Usage & Examples](#usage--examples)
-11. [Troubleshooting](#troubleshooting)
-12. [Best Practices](#best-practices)
+1. [Tổng Quan](#tổng-quan)
+2. [Quy Trình Đọc Và Phân Tích Dữ Liệu Chi Tiết](#quy-trình-đọc-và-phân-tích-dữ-liệu-chi-tiết)
+3. [Kiến Trúc Hệ Thống](#kiến-trúc-hệ-thống)
+4. [Các Format PDF Được Hỗ Trợ](#các-format-pdf-được-hỗ-trợ)
+5. [Cấu Trúc Code](#cấu-trúc-code)
+6. [Các Vấn Đề Đã Gặp Và Giải Pháp](#các-vấn-đề-đã-gặp-và-giải-pháp)
+7. [Best Practices](#best-practices)
+8. [Hướng Dẫn Debug](#hướng-dẫn-debug)
+9. [Lưu Ý Quan Trọng](#lưu-ý-quan-trọng)
+10. [Các Thay Đổi Quan Trọng](#các-thay-đổi-quan-trọng)
 
 ---
 
-## 🎯 Tổng Quan Hệ Thống
+## Tổng Quan
 
-### Mục Đích
-Hệ thống được thiết kế để **tự động parse và extract thông tin từ file PDF Credit Report** với nhiều định dạng khác nhau, đặc biệt tối ưu cho **IdentityIQ 3-Bureau Credit Reports**.
+Hệ thống PDF parsing được thiết kế để xử lý các file credit report từ IdentityIQ với nhiều format khác nhau. Parser có khả năng:
 
-### Tính Năng Chính
-- ✅ **7 Parsing Strategies** - Tự động thử nhiều cách parse khác nhau
-- ✅ **OCR Support** - Xử lý scanned PDFs
-- ✅ **Data Normalization** - Chuẩn hóa dữ liệu từ nhiều nguồn
-- ✅ **Deduplication** - Tránh trùng lặp thông minh
-- ✅ **Discrepancy Detection** - Tự động phát hiện lỗi giữa các bureaus
-- ✅ **Full IdentityIQ Support** - Parse đầy đủ Credit Scores, Personal Profiles, Accounts
-
-### Luồng Xử Lý Tổng Quan
-
-```
-PDF File Upload
-    ↓
-Extract Text (Smalot PDFParser)
-    ↓
-Check if Scanned? → OCR (Tesseract)
-    ↓
-Try 7 Parsing Strategies (Sequential)
-    ├─ Strategy 1: Pipe-Separated
-    ├─ Strategy 2: Tab-Separated
-    ├─ Strategy 3: Comma-Separated
-    ├─ Strategy 4: Regex Pattern Matching
-    ├─ Strategy 5: Fixed-Width Columns
-    ├─ Strategy 6: Keyword-Based Sections
-    └─ Strategy 7: IdentityIQ Full Parser ⭐
-    ↓
-Normalize All Items
-    ↓
-Deduplicate (Unique Keys)
-    ↓
-Detect Discrepancies
-    ↓
-Save to Database
-    ↓
-Return Result with Discrepancies
-```
+- ✅ Extract Credit Scores từ 3 bureaus (TransUnion, Experian, Equifax)
+- ✅ Extract Personal Profile information
+- ✅ Extract Credit Accounts với bureau-specific data
+- ✅ Xử lý nhiều format khác nhau (tabular, inline, raw data view)
+- ✅ Phát hiện và xử lý discrepancies giữa các bureaus
+- ✅ Normalize và validate dữ liệu trước khi lưu
 
 ---
 
-## 🏗️ Kiến Trúc và Components
+## Quy Trình Đọc Và Phân Tích Dữ Liệu Chi Tiết
 
-### Core Services
+### Tổng Quan Quy Trình
 
-#### 1. `CreditReportParserService`
-**Location:** `app/Services/CreditReportParserService.php`
+Quy trình parsing được chia thành 4 giai đoạn chính:
 
-**Chức năng:**
-- Main service để parse PDF
-- Quản lý 7 parsing strategies
-- Tích hợp OCR và Normalization
-- Xử lý deduplication
-
-**Methods:**
-- `parsePdfAndSave(Client $client, string $pdfPath): int` - Main method
-- `parseAndSave(Client $client, string $htmlContent): int` - Parse HTML
-- `parsePipeSeparated()`, `parseTabSeparated()`, etc. - Individual strategies
-
-#### 2. `IdentityIqFullParser`
-**Location:** `app/Services/IdentityIqFullParser.php`
-
-**Chức năng:**
-- Parser chuyên biệt cho IdentityIQ format
-- Extract Credit Scores, Personal Profiles, Accounts
-- Detect discrepancies
-
-**Methods:**
-- `parseAndSave(Client $client, string $pdfPath): array` - Complete parse
-- `parseCreditScores(string $text): ?array`
-- `parsePersonalProfiles(string $text): array`
-- `parseAccounts(string $text): array`
-- `detectDiscrepancies(array $accountData): array`
-
-#### 3. `DataNormalizer`
-**Location:** `app/Services/PdfParsing/DataNormalizer.php`
-
-**Chức năng:**
-- Chuẩn hóa dữ liệu từ nhiều nguồn
-- Normalize account numbers, balances, status, bureau names
-
-**Methods:**
-- `normalizeAccountNumber(string $accountNumber): string`
-- `normalizeBalance($balance): float`
-- `normalizeStatus(?string $status): ?string`
-- `normalizeBureau(string $bureau): ?string`
-- `normalizeItem(array $item): array`
-
-#### 4. `TesseractOcrService`
-**Location:** `app/Services/PdfParsing/TesseractOcrService.php`
-
-**Chức năng:**
-- OCR cho scanned PDFs
-- Auto-detect scanned PDFs
-- Convert PDF → Images → OCR → Text
-
-**Methods:**
-- `extractText(string $pdfPath): string`
-- `needsOcr(string $pdfPath, string $extractedText): bool`
-
-### Models
-
-#### `CreditItem`
-**Fields:**
-- `client_id`, `bureau`, `account_name`, `account_number`
-- `account_type`, `date_opened`, `date_last_active`, `date_reported`
-- `balance`, `high_limit`, `monthly_pay`, `past_due`
-- `status`, `reason`, `dispute_status`
-
-#### `CreditScore`
-**Fields:**
-- `client_id`, `transunion_score`, `experian_score`, `equifax_score`
-- `report_date`, `reference_number`
-
-#### `PersonalProfile`
-**Fields:**
-- `client_id`, `bureau`
-- `name`, `date_of_birth`, `current_address`, `previous_address`, `employer`
-- `date_reported`
+1. **Khởi Tạo & Extract Text từ PDF**
+2. **Parse Credit Scores**
+3. **Parse Personal Profiles**
+4. **Parse Credit Accounts** (phức tạp nhất)
 
 ---
 
-## 🔍 7 Chiến Lược Parsing
+### GIAI ĐOẠN 1: Khởi Tạo & Extract Text từ PDF
 
-### Strategy 1: Pipe-Separated Format
+#### Bước 1.1: Nhận PDF File
 
-**Format:** `Bureau | Account Name | Account Number | Balance | Status | Reason`
-
-**Ví dụ:**
-```
-TransUnion | ABC BANK | 1234567890 | $1,250.00 | Charge Off | Inaccurate late payment
-Experian | XYZ CREDIT | 9876543210 | $500.00 | Collection | 
-Equifax | DEF LOAN | 5555555555 | $2,000.00 | Late Payment | 30 days late
-```
-
-**Implementation:**
 ```php
-private function parsePipeSeparated(Client $client, string $text): array
-{
-    $lines = preg_split('/\R+/', $text);
-    $items = [];
-
-    foreach ($lines as $line) {
-        if (strpos($line, '|') === false) continue;
-        
-        $parts = array_map('trim', explode('|', $line));
-        if (count($parts) < 5) continue;
-        
-        $item = $this->extractItemFromParts($parts);
-        if ($item) $items[] = $item;
-    }
-
-    return $items;
-}
+// Entry point: CreditReportParserService::parsePdfAndSave()
+public function parsePdfAndSave(Client $client, string $pdfPath): int
 ```
-
-**Use Case:** Format chuẩn, dễ parse nhất
-
----
-
-### Strategy 2: Tab-Separated Format
-
-**Format:** `Bureau \t Account Name \t Account Number \t Balance \t Status \t Reason`
-
-**Ví dụ:**
-```
-TransUnion	ABC BANK	1234567890	$1,250.00	Charge Off	Inaccurate late payment
-```
-
-**Implementation:**
-```php
-private function parseTabSeparated(Client $client, string $text): array
-{
-    $lines = preg_split('/\R+/', $text);
-    $items = [];
-
-    foreach ($lines as $line) {
-        if (strpos($line, "\t") === false) continue;
-        
-        $parts = array_map('trim', explode("\t", $line));
-        if (count($parts) < 5) continue;
-        
-        $item = $this->extractItemFromParts($parts);
-        if ($item) $items[] = $item;
-    }
-
-    return $items;
-}
-```
-
-**Use Case:** Copy từ Excel/Spreadsheet
-
----
-
-### Strategy 3: Comma-Separated Format (CSV-like)
-
-**Format:** `Bureau, Account Name, Account Number, Balance, Status, Reason`
-
-**Ví dụ:**
-```
-TransUnion, ABC BANK, 1234567890, $1,250.00, Charge Off, Inaccurate late payment
-```
-
-**Implementation:**
-```php
-private function parseCommaSeparated(Client $client, string $text): array
-{
-    $lines = preg_split('/\R+/', $text);
-    $items = [];
-
-    foreach ($lines as $line) {
-        if (strpos($line, ',') === false) continue;
-        
-        $parts = str_getcsv($line); // Handles quoted values
-        if (count($parts) < 5) continue;
-        
-        $parts = array_map('trim', $parts);
-        $item = $this->extractItemFromParts($parts);
-        if ($item) $items[] = $item;
-    }
-
-    return $items;
-}
-```
-
-**Use Case:** CSV exports
-
----
-
-### Strategy 4: Regex Pattern Matching ⭐ IMPROVED
-
-**Format:** Không cố định, tìm patterns trong text
-
-**Patterns được nhận diện:**
-
-**Pattern 1:** Bureau name + Account info (với masked accounts)
-```
-TransUnion ABC BANK Account: 44445555**** Balance: $1,250.00
-Experian XYZ CREDIT Acct #: 1234**** Bal: $500.00
-```
-
-**Pattern 2:** Account number (masked) + Name + Balance + Status
-```
-44445555**** ABC BANK $1,250.00 Charge Off
-1234**** XYZ CREDIT $500.00 Collection
-```
-
-**Pattern 3:** Dedicated masked account pattern
-```
-Account: XXXX1234 ABC BANK $1,250.00
-Acct #: 1234**** XYZ CREDIT $500.00
-```
-
-**Regex Patterns:**
-```php
-// Pattern 1: Bureau + Account Name + Account Number (masked) + Balance
-/(?:TransUnion|Experian|Equifax)\s+([A-Z][A-Z\s&]+?)\s+(?:Account|Acct|#)[:\s]*([X\*\d]{4,})\s+(?:Balance|Bal|Amount)[:\s]*\$?([\d,]+\.?\d*)/i
-
-// Pattern 2: Account Number (masked) + Name + Balance + Status
-/([X\*\d]{4,})\s+([A-Z][A-Z\s&]+?)\s+\$?([\d,]+\.?\d*)\s+([A-Z][A-Z\s]+)/i
-
-// Pattern 3: Dedicated masked account
-/(?:Account|Acct|#)[:\s]*([X\*\-]{0,}\d{4,}[X\*\-]{0,})\s+([A-Z][A-Z\s&]+?)\s+\$?([\d,]+\.?\d*)/i
-```
-
-**Improvements:**
-- ✅ Hỗ trợ masked accounts: `XXXX1234`, `1234****`, `****-****-****-1234`
-- ✅ Tự động detect bureau từ context
-- ✅ Extract account numbers với độ dài tối thiểu 4 ký tự (thay vì 8)
-
-**Use Case:** Free-form text, IdentityIQ reports
-
----
-
-### Strategy 5: Fixed-Width Column Parsing ⭐ IMPROVED
-
-**Format:** Dữ liệu căn chỉnh theo cột với khoảng trắng cố định
-
-**Ví dụ:**
-```
-TransUnion  ABC BANK           44445555****  $1,250.00  Charge Off
-Experian    XYZ CREDIT         1234****      $500.00    Collection
-```
-
-**Implementation:**
-```php
-private function parseFixedWidth(Client $client, string $text): array
-{
-    $lines = preg_split('/\R+/', $text);
-    $dataLines = [];
-    
-    // Find lines with account numbers and balances
-    foreach ($lines as $line) {
-        if (preg_match('/[X\*\d]{4,}/', $line) && preg_match('/\$?[\d,]+\.?\d*/', $line)) {
-            $dataLines[] = rtrim($line); // Keep trailing spaces
-        }
-    }
-    
-    // Detect column positions using vertical alignment
-    $columnPositions = $this->detectColumnPositions($dataLines);
-    
-    if (empty($columnPositions)) {
-        // Fallback: Use spacing-based approach
-        foreach ($dataLines as $line) {
-            $parts = preg_split('/\s{2,}/', trim($line));
-            // ... extract data
-        }
-    } else {
-        // Use vertical alignment
-        foreach ($dataLines as $line) {
-            $item = $this->extractItemFromAlignedColumns($line, $columnPositions);
-            // ... extract data
-        }
-    }
-}
-```
-
-**Improvements:**
-- ✅ **Vertical Alignment Detection** - Phân tích nhiều dòng cùng lúc
-- ✅ Tìm column positions bằng cách so sánh 60%+ lines
-- ✅ Fallback về spacing-based nếu không detect được
-
-**Use Case:** PDF với fixed-width columns
-
----
-
-### Strategy 6: Keyword-Based Section Parsing ⭐ IMPROVED
-
-**Format:** Tìm theo tên bureau và extract data từ section đó
-
-**Ví dụ:**
-```
-TransUnion Section:
-ABC BANK
-Account: 44445555****
-Balance: $1,250.00
-Status: Charge Off
-
-Experian Section:
-XYZ CREDIT
-Account: 1234****
-Balance: $500.00
-```
-
-**Implementation:**
-```php
-private function parseByKeywords(Client $client, string $text): array
-{
-    $items = [];
-    $bureaus = [
-        'transunion' => ['TransUnion', 'Trans Union', 'TU'],
-        'experian' => ['Experian', 'EXP'],
-        'equifax' => ['Equifax', 'EFX'],
-    ];
-    
-    // Find all bureau positions
-    $bureauPositions = [];
-    foreach ($bureaus as $bureauKey => $bureauNames) {
-        foreach ($bureauNames as $bureauName) {
-            preg_match_all('/\b' . preg_quote($bureauName, '/') . '\b/i', 
-                $text, $matches, PREG_OFFSET_CAPTURE);
-            // ... collect positions
-        }
-    }
-    
-    // Sort by position
-    usort($bureauPositions, fn($a, $b) => $a['position'] <=> $b['position']);
-    
-    // Extract sections with dynamic boundaries
-    foreach ($bureauPositions as $idx => $bureauPos) {
-        $startPos = $bureauPos['position'];
-        
-        // Find end position: next bureau or end marker
-        $endPos = strlen($text);
-        if (isset($bureauPositions[$idx + 1])) {
-            $endPos = $bureauPositions[$idx + 1]['position'];
-        } else {
-            // Look for "End of Report" markers
-            $endMarkers = ['/End of Report/i', '/End of Credit Report/i'];
-            // ... find end position
-        }
-        
-        // Extract section with dynamic boundary
-        $section = substr($text, $startPos, $endPos - $startPos);
-        // ... extract accounts from section
-    }
-}
-```
-
-**Improvements:**
-- ✅ **Dynamic Boundary** - Thay vì fixed 2000 chars
-- ✅ Section kết thúc tại: bureau tiếp theo hoặc "End of Report"
-- ✅ Support multiple bureau name variations
-
-**Use Case:** Section-based reports
-
----
-
-### Strategy 7: IdentityIQ Full Parser ⭐ NEW
-
-**Format:** IdentityIQ structured format với nested bureau data
-
-**Cấu trúc:**
-```
-CREDIT SCORE DASHBOARD:
-TransUnion: 645
-Experian: 650
-Equifax: 620
-
-PERSONAL PROFILE:
-TransUnion: ALEX MINH TRAN
-Experian: ALEX M TRAN
-Equifax: ALEX TRAN
-
-CREDIT ACCOUNTS:
-1. CHASE BANK USA
-   Account #: 44445555****
-   Account Type: Credit Card
-   Date Opened: 01/10/2020
-   Bureau: All Bureaus
-   Details by Bureau:
-      TransUnion:
-         Balance: $1,250.00
-         High Limit: $5,000
-         Pay Status: Current
-         Monthly Pay: $50
-         Comments: Paid as agreed.
-```
-
-**Implementation:**
-- Sử dụng `IdentityIqFullParser` service
-- Parse 3 phần: Scores, Profiles, Accounts
-- Extract bureau-specific data
-- Detect discrepancies
-
-**Use Case:** IdentityIQ 3-Bureau Credit Reports
-
----
-
-## 🎯 IdentityIQ Full Parser
-
-### Overview
-
-`IdentityIqFullParser` là parser chuyên biệt cho IdentityIQ format, extract đầy đủ:
-- ✅ Credit Scores từ 3 bureaus
-- ✅ Personal Profiles với variations
-- ✅ Accounts với bureau-specific data
-- ✅ Discrepancy detection
-
-### Parse Credit Scores
 
 **Input:**
-```
-CREDIT SCORE DASHBOARD:
-TRANSUNION: 645
-EXPERIAN: 650
-EQUIFAX: 620
-```
 
-**Output:**
-```json
-{
-  "transunion": 645,
-  "experian": 650,
-  "equifax": 620
-}
-```
+- `Client $client`: Client object từ database
+- `string $pdfPath`: Đường dẫn đến file PDF
 
-**Code:**
+**Process:**
+
+- Validate file tồn tại
+- Detect format của PDF (auto-detect hoặc hint)
+
+#### Bước 1.2: Parse PDF thành Text
+
 ```php
-private function parseCreditScores(string $text): ?array
-{
-    $scores = [];
-    
-    if (preg_match('/TransUnion[:\s]*(\d+)/i', $text, $tuMatch)) {
-        $scores['transunion'] = (int) $tuMatch[1];
-    }
-    if (preg_match('/Experian[:\s]*(\d+)/i', $text, $expMatch)) {
-        $scores['experian'] = (int) $expMatch[1];
-    }
-    if (preg_match('/Equifax[:\s]*(\d+)/i', $text, $eqMatch)) {
-        $scores['equifax'] = (int) $eqMatch[1];
-    }
-    
-    return !empty($scores) ? $scores : null;
-}
+$parser = new \Smalot\PdfParser\Parser();
+$pdf = $parser->parseFile($pdfPath);
+$text = $pdf->getText();
 ```
 
-### Parse Personal Profiles
+**Công cụ:** Smalot PDF Parser library
 
-**Input:**
-```
-PERSONAL PROFILE:
-Name:
-   TransUnion: ALEX MINH TRAN
-   Experian: ALEX M TRAN
-   Equifax: ALEX TRAN
-Current Address:
-   TransUnion: 1234 OAK STREET, SAN JOSE, CA 95123
-   Experian: 1234 OAK ST, SAN JOSE, CA 95123
-```
+**Output:** Raw text từ PDF (có thể có nhiều line breaks, spaces không đều)
 
-**Output:**
-```json
-[
-  {
-    "bureau": "transunion",
-    "name": "ALEX MINH TRAN",
-    "current_address": "1234 OAK STREET, SAN JOSE, CA 95123",
-    "previous_address": "55 OLD ROAD, AUSTIN, TX 78000",
-    "employer": "TECH SOFT INC"
-  },
-  {
-    "bureau": "experian",
-    "name": "ALEX M TRAN",
-    "current_address": "1234 OAK ST, SAN JOSE, CA 95123",
-    "previous_address": "55 OLD ROAD, AUSTIN, TX 78000",
-    "employer": "TECH SOFT"
-  }
-]
-```
+#### Bước 1.3: Normalize Text
 
-**Code:**
 ```php
-private function parsePersonalProfiles(string $text): array
-{
-    $profiles = [];
-    
-    // Extract PERSONAL PROFILE section
-    if (!preg_match('/PERSONAL PROFILE.*?(?=CREDIT ACCOUNTS|$)/is', $text, $profileSection)) {
-        return $profiles;
-    }
-    
-    $section = $profileSection[0];
-    $bureaus = ['transunion', 'experian', 'equifax'];
-    
-    foreach ($bureaus as $bureau) {
-        $bureauName = ucfirst($bureau);
-        $profile = ['bureau' => $bureau];
-        
-        // Extract name
-        if (preg_match('/' . preg_quote($bureauName, '/') . '.*?Name[:\s]*([^\n]+)/i', $section, $nameMatch)) {
-            $profile['name'] = trim($nameMatch[1]);
-        }
-        
-        // Extract addresses, employer, etc.
-        // ...
-        
-        $profiles[] = $profile;
-    }
-    
-    return $profiles;
-}
+// Remove excessive line breaks (page boundaries)
+$text = preg_replace('/\n{3,}/', "\n\n", $text);
+// Normalize spaces around line breaks
+$text = preg_replace('/\s*\n\s*/', "\n", $text);
 ```
 
-### Parse Accounts với Bureau-Specific Data
+**Mục đích:**
 
-**Input:**
-```
-1. MIDLAND CREDIT MANAGEMENT
-   Account #: 88990011
-   Account Type: Collection Agency
-   
-   [TransUnion Section]
-   Date Reported: 11/01/2025
-   Date Last Active: 06/01/2018
-   Balance: $2,500.00
-   Status: Collection Account
-   
-   [Experian Section]
-   Date Reported: 11/05/2025
-   Date Last Active: 06/01/2018
-   Balance: $2,550.00  ⚠️ DISCREPANCY
-   Status: Collection
-   
-   [Equifax Section]
-   Date Reported: 10/20/2025
-   Date Last Active: 05/01/2018  ⚠️ DISCREPANCY
-   Balance: $2,500.00
-   Status: Collection
-```
+- Loại bỏ line breaks thừa do page breaks
+- Chuẩn hóa spaces để dễ parse hơn
+- Đảm bảo text có format nhất quán
 
-**Output:**
-```json
-{
-  "account_name": "MIDLAND CREDIT MANAGEMENT",
-  "account_number": "88990011",
-  "account_type": "Collection Agency",
-  "bureau_data": {
-    "transunion": {
-      "balance": 2500.00,
-      "date_last_active": "2018-06-01",
-      "date_reported": "2025-11-01",
-      "status": "Collection Account"
-    },
-    "experian": {
-      "balance": 2550.00,
-      "date_last_active": "2018-06-01",
-      "date_reported": "2025-11-05",
-      "status": "Collection"
-    },
-    "equifax": {
-      "balance": 2500.00,
-      "date_last_active": "2018-05-01",
-      "date_reported": "2025-10-20",
-      "status": "Collection"
-    }
-  },
-  "dispute_flags": ["INACCURATE_BALANCE", "INACCURATE_DATE"]
-}
-```
+**Output:** Normalized text string
 
-**Code:**
+#### Bước 1.4: Khởi Tạo Database Transaction
+
 ```php
-private function extractAccountFullDetails(string $section, string $accountName, string $accountNumber): array
-{
-    $accountData = [
-        'account_type' => null,
-        'date_opened' => null,
-        'bureau_data' => [],
-    ];
-    
-    // Find account section
-    $accountPattern = preg_quote($accountName, '/');
-    if (!preg_match('/' . $accountPattern . '.*?(?=\d+\.\s+[A-Z]|$)/is', $section, $accountMatch)) {
-        return $accountData;
-    }
-    
-    $accountSection = $accountMatch[0];
-    
-    // Extract account type, date opened, etc.
-    // ...
-    
-    // Extract bureau-specific data
-    $bureaus = ['TransUnion', 'Experian', 'Equifax'];
-    foreach ($bureaus as $bureau) {
-        $bureauKey = strtolower($bureau);
-        $bureauData = [
-            'balance' => null,
-            'date_last_active' => null,
-            'date_reported' => null,
-            'status' => null,
-            'past_due' => null,
-            // ...
-        ];
-        
-        // Extract from bureau section
-        // ...
-        
-        $accountData['bureau_data'][$bureauKey] = $bureauData;
-    }
-    
-    return $accountData;
-}
+DB::beginTransaction();
 ```
+
+**Mục đích:** Đảm bảo data consistency - nếu có lỗi, rollback tất cả
 
 ---
 
-## 🔍 OCR Support cho Scanned PDFs
+### GIAI ĐOẠN 2: Parse Credit Scores
 
-### Vấn Đề
-Smalot PDFParser chỉ extract được text từ PDF gốc (text-based). Nếu PDF là scanned image, sẽ trả về chuỗi rỗng.
+#### Bước 2.1: Tìm Section Credit Scores
 
-### Giải Pháp
-
-#### Auto-Detection
 ```php
-public function needsOcr(string $pdfPath, string $extractedText): bool
-{
-    // If extracted text is too short, likely a scanned PDF
-    if (strlen(trim($extractedText)) < 100) {
-        return true;
-    }
-    
-    // Check if text contains mostly non-alphanumeric
-    $alphanumericRatio = preg_match_all('/[a-zA-Z0-9]/', $extractedText) / max(strlen($extractedText), 1);
-    if ($alphanumericRatio < 0.3) {
-        return true;
-    }
-    
-    return false;
-}
+$scores = $this->parseCreditScores($text);
 ```
 
-#### OCR Process
+**Pattern tìm kiếm:**
+
+- Tìm section "CREDIT SCORE DASHBOARD" hoặc "CREDIT SCORES"
+- Tìm table format với 3 bureaus: TransUnion, Experian, Equifax
+
+**Format được hỗ trợ:**
+
+**Format 1: Tabular Format**
+
+```
+|  TRANSUNION | EXPERIAN | EQUIFAX  |
+| --- | --- | --- |
+|  725 | 718 | 730  |
+```
+
+**Format 2: Inline Format**
+
+```
+TransUnion: 725
+Experian: 718
+Equifax: 730
+```
+
+#### Bước 2.2: Extract Scores từ Table
+
 ```php
-public function extractText(string $pdfPath): string
-{
-    // 1. Convert PDF to images
-    $images = $this->pdfToImages($pdfPath);
-    
-    // 2. OCR each image
-    $allText = '';
-    foreach ($images as $imagePath) {
-        $text = $this->ocrImage($imagePath);
-        $allText .= $text . "\n";
-    }
-    
-    return trim($allText);
-}
+// Pattern để match table format
+$pattern = '/TRANSUNION\s*\|\s*EXPERIAN\s*\|\s*EQUIFAX.*?\n.*?\|.*?\|.*?\|.*?\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)/is';
 ```
 
-#### Requirements
-- **Tesseract OCR** installed
-- **pdftoppm** (poppler-utils) for PDF to image conversion
+**Logic:**
 
-#### Installation
-```bash
-# Ubuntu/Debian
-sudo apt-get install tesseract-ocr poppler-utils
+1. Tìm header row với 3 bureaus
+2. Tìm data row tiếp theo
+3. Extract 3 giá trị số (scores)
+4. Map: cells[1] = TransUnion, cells[2] = Experian, cells[3] = Equifax
 
-# macOS
-brew install tesseract poppler
+#### Bước 2.3: Extract Report Date & Reference Number
 
-# Windows
-# Download from: https://github.com/UB-Mannheim/tesseract/wiki
+```php
+$reportDate = $this->extractReportDate($text);
+$referenceNumber = $this->extractReferenceNumber($text);
 ```
+
+**Patterns:**
+
+- Date: `Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})`
+- Reference: `Reference\s*#?:\s*([A-Z0-9\-]+)`
+
+#### Bước 2.4: Lưu vào Database
+
+```php
+CreditScore::create([
+    'client_id' => $client->id,
+    'transunion_score' => $scores['transunion'] ?? null,
+    'experian_score' => $scores['experian'] ?? null,
+    'equifax_score' => $scores['equifax'] ?? null,
+    'report_date' => $reportDate,
+    'reference_number' => $referenceNumber,
+]);
+```
+
+**Error Handling:** Nếu fail, log warning nhưng tiếp tục với các phần khác
 
 ---
 
-## 🔄 Data Normalization
+### GIAI ĐOẠN 3: Parse Personal Profiles
 
-### Mục Đích
-Chuẩn hóa dữ liệu từ nhiều nguồn để đảm bảo consistency.
+#### Bước 3.1: Tìm Section Personal Profile
 
-### Account Number Normalization
-
-**Input:** `XXXX1234`, `1234****`, `****-****-****-1234`, `1234567890`
-
-**Output:** `1234` (last 4 digits)
-
-**Code:**
 ```php
-public function normalizeAccountNumber(string $accountNumber): string
-{
-    $accountNumber = trim($accountNumber);
-    $accountNumber = str_replace(['-', ' ', '_'], '', $accountNumber);
-    
-    // Extract last 4 digits if masked
-    if (preg_match('/(\d{4})(?:[X\*]+|\d*)$/', $accountNumber, $matches)) {
-        return $matches[1];
-    }
-    
-    // If fully masked, try to extract any digits
-    if (preg_match('/(\d+)/', $accountNumber, $matches)) {
-        return $matches[1];
-    }
-    
-    return $accountNumber;
+$profiles = $this->parsePersonalProfiles($text);
+```
+
+**Pattern tìm kiếm:**
+
+- Tìm section "PERSONAL PROFILE" hoặc "PERSONAL INFORMATION"
+
+#### Bước 3.2: Extract Profile Data cho từng Bureau
+
+**Format được hỗ trợ:**
+
+**Format 1: Tabular Format (Phổ biến nhất)**
+
+```
+|  Field | TransUnion | Experian | Equifax  |
+| --- | --- | --- | --- |
+|  Name: | NGUYEN VAN A | NGUYEN V A | NGUYEN VAN A  |
+|  Date of Birth: | 1990 | 1990 | 1990  |
+|  Current Address: | 123 MAIN ST | 123 MAIN STREET | 123 MAIN ST  |
+```
+
+**Logic Extract:**
+
+1. Tìm header row với 3 bureaus
+2. Với mỗi field row:
+   - Extract field name (cells[1])
+   - Extract TransUnion value (cells[2])
+   - Extract Experian value (cells[3])
+   - Extract Equifax value (cells[4])
+3. Map fields: Name, Date of Birth, Current Address, Employer
+
+**Format 2: Per-Bureau Format**
+
+```
+TransUnion:
+  Name: NGUYEN VAN A
+  Date of Birth: 1990
+  Address: 123 MAIN ST
+
+Experian:
+  Name: NGUYEN V A
+  Date of Birth: 1990
+  Address: 123 MAIN STREET
+```
+
+**Logic Extract:**
+
+1. Tìm section cho từng bureau
+2. Extract fields trong section đó
+3. Lặp lại cho 3 bureaus
+
+#### Bước 3.3: Normalize và Validate Data
+
+```php
+// Normalize name
+$name = trim($name);
+// Normalize address
+$address = $this->normalizeAddress($address);
+// Parse date of birth
+$dob = $this->parseDate($dob);
+```
+
+#### Bước 3.4: Lưu vào Database
+
+```php
+foreach ($profiles as $profile) {
+    PersonalProfile::updateOrCreate(
+        [
+            'client_id' => $client->id,
+            'bureau' => $profile['bureau'],
+        ],
+        $profile
+    );
 }
 ```
 
-### Balance Normalization
+**Lưu ý:** Sử dụng `updateOrCreate` để tránh duplicate
 
-**Input:** `$1,200.00`, `1200`, `1.200,00` (European format)
+---
 
-**Output:** `1200.0` (float)
+### GIAI ĐOẠN 4: Parse Credit Accounts (Phức Tạp Nhất)
 
-**Code:**
+#### Bước 4.1: Tìm Section Credit Accounts
+
 ```php
-public function normalizeBalance($balance): float
-{
-    if (is_numeric($balance)) {
-        return (float) $balance;
-    }
-    
-    $balance = trim((string) $balance);
-    $balance = preg_replace('/[^\d.,\-]/', '', $balance);
-    
-    // Handle European format (1.200,00)
-    if (preg_match('/^(\d{1,3}(?:\.\d{3})*),(\d+)$/', $balance, $matches)) {
-        $balance = str_replace('.', '', $matches[1]) . '.' . $matches[2];
-    } else {
-        $balance = str_replace(',', '', $balance);
-    }
-    
-    return (float) $balance;
+$accounts = $this->parseAccounts($text, $formatHint);
+```
+
+**Pattern tìm kiếm:**
+
+- Tìm section "CREDIT ACCOUNTS" hoặc "TRADE LINES" hoặc "ACCOUNTS"
+
+**Logic:**
+
+1. Tìm start marker: "CREDIT ACCOUNTS"
+2. Tìm end marker: "INQUIRIES" hoặc "PUBLIC RECORDS" hoặc "END OF REPORT"
+3. Extract section giữa 2 markers
+
+#### Bước 4.2: Extract Account Names và Account Numbers
+
+**Pattern 1: Numbered Accounts (Phổ biến nhất)**
+
+```php
+$pattern1 = '/(\d+)\.\s+([A-Z][A-Z\s&.,\-()]+?)(?:\s+(?:Account|Acct|#)[:\s]*([X\*\d\-]+))?(?:\s*\([^)]+\))?(?:\s|$)/i';
+```
+
+**Ví dụ:**
+
+```
+1. CHASE BANK USA (Open Account - Good Standing)
+Account #: 44445555***
+```
+
+**Logic:**
+
+1. Match pattern: `1. ACCOUNT NAME Account #: NUMBER`
+2. Extract account name (loại bỏ blacklist: Revolving, Auto Loan, etc.)
+3. Extract account number (có thể có mask: `***`, `X`)
+4. Validate account name không phải là header/type
+
+**Pattern 2: Accounts không có số thứ tự**
+
+```php
+$pattern2 = '/([A-Z][A-Z\s&]{3,}?)\s*(?:\n|$).*?(?:Account|Acct|#)[:\s]*([X\*\d\-]+)/is';
+```
+
+**Pattern 3: Raw Data View Format**
+
+```php
+$pattern3 = '/(?:TransUnion|Experian|Equifax)\s*\|\s*([A-Z][A-Z\s&]+?)\s*\|\s*([X\*\d\-]+)\s*\|\s*\$?([\d,]+\.?\d*)/i';
+```
+
+#### Bước 4.3: Extract Full Account Details cho mỗi Account
+
+**Với mỗi account tìm được:**
+
+```php
+$accountData = $this->extractAccountFullDetails($section, $accountName, $accountNumber);
+```
+
+**Bước 4.3.1: Tìm Account Section**
+
+**Logic:**
+
+1. Tìm vị trí account name trong text
+2. Tìm account number để verify
+3. Tìm end marker: account tiếp theo hoặc "INQUIRIES"
+4. Extract section giữa start và end
+
+**Bước 4.3.2: Extract Account Type và Date Opened**
+
+```php
+// Account Type
+if (preg_match('/Account Type[:\s]*([^\n]+)/i', $accountSection, $typeMatch)) {
+    $accountData['account_type'] = trim($typeMatch[1]);
+}
+
+// Date Opened
+if (preg_match('/Date Opened[:\s]*([0-9\/\-]+)/i', $accountSection, $dateMatch)) {
+    $accountData['date_opened'] = $this->parseDate(trim($dateMatch[1]));
 }
 ```
 
-### Status Normalization
+**Bước 4.3.3: Extract Bureau-Specific Data (QUAN TRỌNG NHẤT)**
 
-**Input:** `Chrg Off`, `Charged-off`, `C/O`, `charge off`
+**Với mỗi bureau (TransUnion, Experian, Equifax):**
 
-**Output:** `CHARGED_OFF`
-
-**Status Mapping:**
 ```php
-$statusMap = [
-    // Charged Off variations
-    'charged off' => 'CHARGED_OFF',
-    'charge off' => 'CHARGED_OFF',
-    'charge-off' => 'CHARGED_OFF',
-    'charged-off' => 'CHARGED_OFF',
-    'chrg off' => 'CHARGED_OFF',
-    'c/o' => 'CHARGED_OFF',
-    'co' => 'CHARGED_OFF',
-    
-    // Collection variations
-    'collection' => 'COLLECTION',
-    'collections' => 'COLLECTION',
-    'in collection' => 'COLLECTION',
-    
-    // Late Payment variations
-    'late payment' => 'LATE_PAYMENT',
-    'late' => 'LATE_PAYMENT',
-    'delinquent' => 'LATE_PAYMENT',
-    
-    // ... và nhiều variations khác
+foreach ($bureaus as $bureau) {
+    $bureauData = $this->extractBureauData($accountSection, $bureau);
+    $accountData['bureau_data'][$bureau] = $bureauData;
+}
+```
+
+**Thứ tự ưu tiên extract methods:**
+
+**Priority 1: Table Format (Ưu tiên cao nhất)**
+
+```php
+$tableResult = $this->extractFromTable($accountSection, $bureau);
+```
+
+**Format:**
+
+```
+|   | TransUnion | Experian | Equifax  |
+| Account Status: | Open | Open | Open  |
+| Payment Status: | Current | Current | Current  |
+| Balance: | $1,200 | $1,200 | $1,200  |
+| High Limit: | $5,000 | $5,000 | $5,000  |
+```
+
+**Logic Extract:**
+
+1. Tìm header row: `|   | TransUnion | Experian | Equifax  |`
+2. Detect empty first column
+3. Với mỗi data row:
+   - Parse row: `Account Status: | Open | Open | Open  |`
+   - Extract field name: "Account Status"
+   - Calculate column index:
+     - TransUnion (index 0) → cells[2]
+     - Experian (index 1) → cells[3]
+     - Equifax (index 2) → cells[4]
+   - Extract value từ đúng column
+4. Map field names:
+   - "Account Status" → `status`
+   - "Payment Status" → `payment_status`
+   - "Balance" → `balance`
+   - "High Limit" → `high_limit`
+   - "Monthly Payment" → `monthly_pay`
+   - "Past Due" → `past_due`
+   - "Date Opened" → `date_opened`
+   - "Last Reported" → `date_reported`
+
+**Pattern Matching Chi Tiết:**
+
+**Pattern 1: Với leading | và colon**
+
+```php
+// Format: "| Account Status: | Open | Open | Open  |"
+if (preg_match('/^\s*\|\s*([^|:]+?):\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)(?:\s*\||\s*$)/i', $row, $cells)) {
+    // cells[0] = full match
+    // cells[1] = "Account Status" (field name)
+    // cells[2] = "Open" (TransUnion value)
+    // cells[3] = "Open" (Experian value)
+    // cells[4] = "Open" (Equifax value)
+
+    $fieldName = trim($cells[1]);
+    $valueIndex = $columnIndex + 2; // +2 vì cells[0]=match, cells[1]=field name
+    $value = trim($cells[$valueIndex]);
+}
+```
+
+**Pattern 2: Không có leading | nhưng có colon**
+
+```php
+// Format: "Account Status: | Open | Open | Open  |"
+elseif (preg_match('/^\s*([^|:]+?):\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)(?:\s*\||\s*$)/i', $row, $cells)) {
+    // cells[0] = full match
+    // cells[1] = "Account Status" (field name)
+    // cells[2] = "Open" (TransUnion value)
+    // cells[3] = "Open" (Experian value)
+    // cells[4] = "Open" (Equifax value)
+
+    $fieldName = trim($cells[1]);
+    $valueIndex = $columnIndex + 2;
+    $value = trim($cells[$valueIndex]);
+}
+```
+
+**Pattern 3: Với leading | nhưng không có colon**
+
+```php
+// Format: "| Field Name | value1 | value2 | value3"
+elseif (preg_match('/^\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)/i', $row, $cells)) {
+    // cells[0] = full match
+    // cells[1] = "Field Name" (có thể empty nếu là header row)
+    // cells[2] = value1 (TransUnion)
+    // cells[3] = value2 (Experian)
+    // cells[4] = value3 (Equifax)
+
+    $fieldName = trim($cells[1]);
+    // Skip nếu empty hoặc là header
+    if (empty($fieldName) || preg_match('/TransUnion|Experian|Equifax/i', $fieldName)) {
+        continue;
+    }
+    $valueIndex = $columnIndex + 2;
+    $value = trim($cells[$valueIndex]);
+}
+```
+
+**Column Index Calculation Chi Tiết:**
+
+**Ví dụ với format:**
+
+```
+|   | TransUnion | Experian | Equifax  |
+| Account Status: | Open | Open | Open  |
+```
+
+**Header Row Parsing:**
+
+- Pattern match: `|   | TransUnion | Experian | Equifax  |`
+- cells[0] = full match
+- cells[1] = empty (first column)
+- cells[2] = "TransUnion"
+- cells[3] = "Experian"
+- cells[4] = "Equifax"
+
+**Data Row Parsing:**
+
+- Pattern match: `Account Status: | Open | Open | Open  |`
+- cells[0] = full match
+- cells[1] = "Account Status"
+- cells[2] = "Open" (TransUnion)
+- cells[3] = "Open" (Experian)
+- cells[4] = "Open" (Equifax)
+
+**Column Index Mapping:**
+
+- TransUnion: `columnIndex = 0` → `valueIndex = 0 + 2 = 2` → `cells[2]` = "Open" ✓
+- Experian: `columnIndex = 1` → `valueIndex = 1 + 2 = 3` → `cells[3]` = "Open" ✓
+- Equifax: `columnIndex = 2` → `valueIndex = 2 + 2 = 4` → `cells[4]` = "Open" ✓
+
+**Field Name Mapping:**
+
+```php
+// Map field names to data keys
+if (stripos($fieldName, 'balance') !== false) {
+    $bureauData['balance'] = $this->normalizer->normalizeBalance($value);
+} elseif (stripos($fieldName, 'monthly payment') !== false || stripos($fieldName, 'monthly pay') !== false) {
+    $bureauData['monthly_pay'] = $this->normalizer->normalizeBalance($value);
+} elseif (stripos($fieldName, 'high limit') !== false || stripos($fieldName, 'credit limit') !== false || stripos($fieldName, 'limit') !== false) {
+    $bureauData['high_limit'] = $this->normalizer->normalizeBalance($value);
+} elseif (stripos($fieldName, 'payment status') !== false || stripos($fieldName, 'pay status') !== false) {
+    // QUAN TRỌNG: Payment Status được extract TRƯỚC Account Status
+    $bureauData['payment_status'] = trim($value);
+} elseif (stripos($fieldName, 'account status') !== false || (stripos($fieldName, 'status') !== false && stripos($fieldName, 'payment') === false)) {
+    // Account Status chỉ được extract nếu không phải Payment Status
+    $bureauData['status'] = trim($value);
+} elseif (stripos($fieldName, 'past due') !== false) {
+    $bureauData['past_due'] = $this->normalizer->normalizeBalance($value);
+} elseif (stripos($fieldName, 'date last active') !== false || stripos($fieldName, 'last payment') !== false) {
+    $bureauData['date_last_active'] = $this->parseDate($value);
+} elseif (stripos($fieldName, 'last reported') !== false || stripos($fieldName, 'date reported') !== false) {
+    $bureauData['date_reported'] = $this->parseDate($value);
+}
+```
+
+**Lưu ý quan trọng về Payment Status vs Account Status:**
+
+- **Payment Status** được check TRƯỚC Account Status
+- Điều này đảm bảo không bị nhầm lẫn giữa 2 loại status
+- Payment Status: Current, Late 30 Days, Collection, etc.
+- Account Status: Open, Closed, Paid, etc.
+
+**Priority 2: Inline Table Format**
+
+```php
+$inlineResult = $this->extractFromInlineTable($accountSection, $bureau);
+```
+
+**Format:**
+
+```
+Balance: $1,350.00 $1,150.00 $1,250.00
+High Limit: $5,000 $5,000 $5,000
+```
+
+**Logic:**
+
+1. Tìm pattern: `Balance: $value1 $value2 $value3`
+2. Extract 3 values
+3. Map theo bureau index:
+   - TransUnion (index 0) → value1
+   - Experian (index 1) → value2
+   - Equifax (index 2) → value3
+
+**Priority 3: Raw Data View Format**
+
+```php
+$rawResult = $this->extractFromRawDataView($accountSection, $bureau, $accountName, $accountNumber);
+```
+
+**Format:**
+
+```
+TransUnion | PORTFOLIO RECOVERY | 99998888 | $900.00 | Collection | ...
+```
+
+**Logic:**
+
+1. Tìm row bắt đầu với bureau name
+2. Parse pipe-separated values
+3. Extract: Account Name, Account Number, Balance, Status, Reason
+
+**Priority 4: Bracketed Section Format**
+
+```php
+$bracketedResult = $this->extractFromBracketedSection($accountSection, $bureau);
+```
+
+**Format:**
+
+```
+[TransUnion Section]
+  Balance: $1,200
+  Status: Open
+```
+
+**Priority 5: Direct Table Rows (Fallback)**
+
+```php
+$directResult = $this->extractDirectlyFromTableRows($accountSection, $bureau);
+```
+
+**Mục đích:** Fallback nếu các methods trên không hoạt động
+
+**Bước 4.3.4: Parse và Normalize Data**
+
+**Balance:**
+
+```php
+$bureauData['balance'] = $this->normalizer->normalizeBalance($value);
+// Handles: "$1,200.00", "$1200", "1200.00" → 1200.00
+```
+
+**Status:**
+
+```php
+$bureauData['status'] = $this->normalizer->normalizeStatus($value);
+// Handles: "Open", "OPEN", "open" → "Open"
+```
+
+**Payment Status:**
+
+```php
+$bureauData['payment_status'] = $this->normalizePaymentStatus($value);
+// Handles: "Current", "Late 30 Days", "Collection" → normalized values
+```
+
+**Dates:**
+
+```php
+$bureauData['date_opened'] = $this->parseDate($value);
+// Handles: "01/15/2020", "2020-01-15", "Jan 15, 2020" → Carbon date
+```
+
+#### Bước 4.4: Tạo CreditItem Records cho Database
+
+```php
+$items = $this->createAccountItems($client, $accountData);
+```
+
+**Logic:**
+
+**Với mỗi bureau (TransUnion, Experian, Equifax):**
+
+1. **Lấy Bureau Data:**
+
+```php
+   $bureauData = $accountData['bureau_data'][$bureau] ?? [];
+```
+
+2. **Fallback nếu không có bureau_data:**
+
+```php
+   if (empty($bureauData) && isset($accountData['bureau']) && strtolower($accountData['bureau']) === 'all bureaus') {
+       $bureauData = [
+           'balance' => $accountData['balance'] ?? 0,
+           'status' => $accountData['status'] ?? null,
+           'payment_status' => $accountData['payment_status'] ?? null,
+           // ... other fields
+       ];
+   }
+```
+
+3. **Check Duplicate:**
+
+```php
+    $exists = CreditItem::where('client_id', $client->id)
+       ->where('bureau', $bureau)
+       ->where('account_name', $accountData['account_name'])
+       ->where('account_number', $accountData['account_number'] ?? null)
+        ->exists();
+```
+
+4. **Normalize Status và Payment Status:**
+
+   ```php
+   $normalizedStatus = $this->normalizer->normalizeStatus($bureauData['status'] ?? null);
+   $normalizedPaymentStatus = $this->normalizePaymentStatus($bureauData['payment_status'] ?? null);
+   ```
+
+5. **Create CreditItem:**
+   ```php
+   $item = CreditItem::create([
+       'client_id' => $client->id,
+       'bureau' => $bureau,
+       'account_name' => $accountData['account_name'],
+       'account_number' => $accountData['account_number'] ?? null,
+       'account_type' => $accountData['account_type'] ?? null,
+       'date_opened' => $accountData['date_opened'] ?? null,
+       'date_last_active' => $bureauData['date_last_active'] ?? null,
+       'date_reported' => $bureauData['date_reported'] ?? null,
+       'balance' => $bureauData['balance'] ?? 0,
+       'high_limit' => $bureauData['high_limit'] ?? null,
+       'monthly_pay' => $bureauData['monthly_pay'] ?? null,
+       'past_due' => $bureauData['past_due'] ?? null,
+       'payment_history' => $bureauData['payment_history'] ?? null,
+       'status' => $normalizedStatus,
+       'payment_status' => $normalizedPaymentStatus,
+       'reason' => $bureauData['reason'] ?? null,
+       'dispute_status' => CreditItem::STATUS_PENDING,
+   ]);
+   ```
+
+**Lưu ý quan trọng:**
+
+- **Luôn tạo items cho tất cả 3 bureaus**, kể cả khi không có data
+- Điều này đảm bảo tất cả accounts xuất hiện cho tất cả bureaus
+- Nếu không có bureau_data, sử dụng general accountData hoặc empty values
+
+#### Bước 4.5: Detect Discrepancies
+
+```php
+$discrepancies = $this->detectDiscrepancies($accountData);
+```
+
+**Logic:**
+
+1. So sánh balance giữa 3 bureaus
+2. So sánh status giữa 3 bureaus
+3. So sánh payment_status giữa 3 bureaus
+4. Flag nếu có khác biệt
+
+**Ví dụ:**
+
+```php
+if ($tuBalance !== $expBalance || $tuBalance !== $eqBalance) {
+    $discrepancies[] = 'Balance discrepancy';
+}
+```
+
+#### Bước 4.6: Error Handling và Logging
+
+**Với mỗi account:**
+
+```php
+try {
+    // Process account
+} catch (\Exception $e) {
+    Log::error("Failed to process account: {$e->getMessage()}");
+    // Continue with next account
+}
+```
+
+**Logging quan trọng:**
+
+- Account được extract
+- Bureau data được tìm thấy
+- Column extraction details
+- Errors và warnings
+
+---
+
+### GIAI ĐOẠN 5: Commit Transaction và Return Results
+
+#### Bước 5.1: Commit Database Transaction
+
+```php
+DB::commit();
+```
+
+**Nếu có lỗi:**
+
+```php
+DB::rollBack();
+throw $e;
+```
+
+#### Bước 5.2: Return Results
+
+```php
+return [
+    'scores' => $creditScore,
+    'personal_profiles' => $profileCount,
+    'accounts' => $accountCount,
+    'discrepancies' => $discrepancies,
 ];
 ```
 
 ---
 
-## 🔐 Deduplication Logic
+### Tóm Tắt Quy Trình Parsing
 
-### Vấn Đề
-Cùng một account có thể được parse nhiều lần từ các strategies khác nhau.
+**Flow Diagram Chi Tiết:**
 
-### Giải Pháp
-
-#### 1. Collect-Then-Save Pattern
-```php
-// Collect all items from all strategies first
-$allItems = [];
-$allItems = array_merge($allItems, $this->parsePipeSeparated(...));
-$allItems = array_merge($allItems, $this->parseTabSeparated(...));
-// ... all strategies
-
-// Normalize all items
-$normalizedItems = [];
-foreach ($allItems as $item) {
-    $normalized = $this->normalizer->normalizeItem($item);
-    $normalizedItems[] = $normalized;
-}
-
-// Create unique keys and deduplicate
-$seenKeys = [];
-$uniqueItems = [];
-foreach ($normalizedItems as $item) {
-    $uniqueKey = $this->createUniqueKey($client->id, $item);
-    if (!isset($seenKeys[$uniqueKey])) {
-        $seenKeys[$uniqueKey] = true;
-        $uniqueItems[] = $item;
-    }
-}
-
-// Save unique items
-foreach ($uniqueItems as $item) {
-    $this->saveCreditItem($client, $item);
-}
+```
+PDF File
+    ↓
+[1] Extract Text từ PDF
+    ├── Parse PDF → Raw Text
+    └── Normalize Text (remove excessive line breaks)
+    ↓
+[2] Parse Credit Scores
+    ├── Tìm section "CREDIT SCORE DASHBOARD"
+    ├── Extract scores từ table hoặc inline format
+    ├── Extract report date và reference number
+    └── Lưu vào CreditScore table
+    ↓
+[3] Parse Personal Profiles
+    ├── Tìm section "PERSONAL PROFILE"
+    ├── Extract profile data cho từng bureau (table hoặc per-bureau format)
+    ├── Normalize data (name, address, DOB)
+    └── Lưu vào PersonalProfile table (updateOrCreate)
+    ↓
+[4] Parse Credit Accounts (PHỨC TẠP NHẤT)
+    ├── Tìm section "CREDIT ACCOUNTS"
+    ├── Extract account names và numbers (3 patterns)
+    │   ├── Pattern 1: Numbered accounts "1. ACCOUNT NAME"
+    │   ├── Pattern 2: Accounts không có số
+    │   └── Pattern 3: Raw data view format
+    │
+    ├── Với mỗi account:
+    │   ├── Extract account section (từ account name đến account tiếp theo)
+    │   ├── Extract account type và date opened
+    │   │
+    │   └── Extract bureau-specific data (cho mỗi bureau):
+    │       ├── Priority 1: Table format (extractFromTable)
+    │       │   ├── Tìm header row với 3 bureaus
+    │       │   ├── Parse từng data row
+    │       │   ├── Calculate column index
+    │       │   ├── Extract value từ đúng column
+    │       │   └── Map field names (Account Status, Payment Status, Balance, etc.)
+    │       │
+    │       ├── Priority 2: Inline table format (extractFromInlineTable)
+    │       │   └── Format: "Balance: $X $Y $Z"
+    │       │
+    │       ├── Priority 3: Raw data view (extractFromRawDataView)
+    │       │   └── Format: "Bureau | Name | # | Balance | Status"
+    │       │
+    │       ├── Priority 4: Bracketed section (extractFromBracketedSection)
+    │       │   └── Format: "[TransUnion Section] ... data ..."
+    │       │
+    │       └── Priority 5: Direct table rows (extractDirectlyFromTableRows)
+    │           └── Fallback method
+    │
+    │   ├── Normalize data (balance, status, dates)
+    │   ├── Create CreditItem records cho 3 bureaus
+    │   │   ├── Check duplicate
+    │   │   ├── Normalize status và payment_status
+    │   │   └── Create record với bureau-specific data
+    │   │
+    │   └── Detect discrepancies (so sánh giữa 3 bureaus)
+    │
+    └── Return account count và discrepancies
+    ↓
+[5] Commit Transaction
+    ├── DB::commit()
+    └── Return results
 ```
 
-#### 2. Unique Key Generation
-```php
-private function createUniqueKey(int $clientId, array $item): string
-{
-    $accountNumber = $this->normalizer->normalizeAccountNumber($item['account_number'] ?? '');
-    return md5("{$clientId}_{$item['bureau']}_{$accountNumber}");
-}
+**Thời Gian Xử Lý Ước Tính:**
+
+- PDF nhỏ (< 10 pages): ~2-5 giây
+- PDF trung bình (10-50 pages): ~5-15 giây
+- PDF lớn (> 50 pages): ~15-30 giây
+
+**Memory Usage:**
+
+- Text extraction: ~1-5 MB (tùy PDF size)
+- Parsing process: ~5-20 MB (tùy số lượng accounts)
+
+**Error Handling Strategy:**
+
+- **Credit Scores fail:** Log warning, continue với profiles và accounts
+- **Personal Profiles fail:** Log warning, continue với accounts
+- **Single Account fail:** Log error, continue với accounts khác
+- **All fail:** Rollback transaction, throw exception
+
+**Key Points:**
+
+1. **Text Normalization** là bước quan trọng đầu tiên - đảm bảo text có format nhất quán
+2. **Table Format** được ưu tiên cao nhất vì đáng tin cậy và chứa đầy đủ thông tin
+3. **Column Index Calculation** phải chính xác để không nhầm lẫn giữa các cột
+4. **Payment Status** được extract TRƯỚC Account Status để tránh nhầm lẫn
+5. **Luôn tạo items cho tất cả 3 bureaus** để đảm bảo data đầy đủ
+6. **Transaction** đảm bảo data consistency - nếu có lỗi, rollback tất cả
+
+---
+
+## Kiến Trúc Hệ Thống
+
+### File Structure
+
+```
+app/Services/
+├── CreditReportParserService.php      # Main entry point
+├── IdentityIqFullParser.php           # Core parser implementation
+└── PdfParsing/
+    └── DataNormalizer.php             # Data normalization utilities
 ```
 
-#### 3. Database-Level Duplicate Check
-```php
-private function saveCreditItem(Client $client, array $item): bool
-{
-    // Normalize account number for duplicate check
-    $normalizedAccountNumber = $this->normalizer->normalizeAccountNumber($item['account_number']);
-    
-    // Check for duplicates using normalized account number
-    $exists = CreditItem::where('client_id', $client->id)
-        ->where('bureau', $item['bureau'])
-        ->where(function($query) use ($item, $normalizedAccountNumber) {
-            $query->where('account_number', $item['account_number'])
-                  ->orWhereRaw('SUBSTRING(account_number, -4) = ?', [$normalizedAccountNumber]);
-        })
-        ->exists();
-    
-    if ($exists) {
-        return false;
-    }
-    
-    // Create record
-    CreditItem::create([...]);
-    return true;
-}
+### Flow Diagram
+
+```
+PDF File
+    ↓
+CreditReportParserService::parsePdfAndSave()
+    ↓
+IdentityIqFullParser::parseAndSave()
+    ↓
+├── parseCreditScores()
+├── parsePersonalProfiles()
+└── parseAccounts()
+    ├── extractAccountFullDetails()
+    │   ├── extractFromTable()         # Priority 1: Table format
+    │   ├── extractFromInlineTable()   # Priority 2: Inline format
+    │   ├── extractFromRawDataView()   # Priority 3: Raw data
+    │   └── extractFromBracketedSection() # Priority 4: Bracketed
+    └── createAccountItems()           # Create DB records
 ```
 
 ---
 
-## 📊 Cấu Trúc Dữ Liệu Output
+## Các Format PDF Được Hỗ Trợ
 
-### IdentityIQ Full Parser Output
+### 1. Combined 3-Bureau Format
 
-```json
-{
-  "scores": {
-    "id": 1,
-    "client_id": 1,
-    "transunion_score": 645,
-    "experian_score": 650,
-    "equifax_score": 620,
-    "report_date": "2025-12-20",
-    "reference_number": "998877-IIQ"
-  },
-  "personal_profiles": 3,
-  "accounts": 5,
-  "discrepancies": [
-    {
-      "account_name": "MIDLAND CREDIT MANAGEMENT",
-      "account_number": "88990011",
-      "flags": ["INACCURATE_BALANCE", "INACCURATE_DATE"]
-    },
-    {
-      "account_name": "WELLS FARGO DEALER SERVICES",
-      "account_number": "112233****",
-      "flags": ["STATUS_CONFLICT"]
-    }
-  ]
-}
+Format phổ biến nhất, hiển thị tất cả 3 bureaus trong một bảng:
+
+```
+|   | TransUnion | Experian | Equifax  |
+| Account Status: | Open | Open | Open  |
+| Payment Status: | Current | Current | Current  |
+| Balance: | $1,200 | $1,200 | $1,200  |
 ```
 
-### Credit Items Created
+### 2. Per-Bureau Format
 
-Mỗi account với "All Bureaus" sẽ tạo **3 Credit Items** riêng:
+Mỗi bureau có section riêng:
 
-```json
-[
-  {
-    "id": 1,
-    "client_id": 1,
-    "bureau": "transunion",
-    "account_name": "CHASE BANK USA",
-    "account_number": "44445555****",
-    "account_type": "Credit Card",
-    "date_opened": "2020-01-10",
-    "balance": 1250.00,
-    "high_limit": 5000.00,
-    "monthly_pay": 50.00,
-    "status": "Current",
-    "reason": "Paid as agreed.",
-    "dispute_status": "pending"
-  },
-  {
-    "id": 2,
-    "bureau": "experian",
-    // ... same account, different bureau
-  },
-  {
-    "id": 3,
-    "bureau": "equifax",
-    // ... same account, different bureau
-  }
-]
+```
+TransUnion:
+  Balance: $1,200
+  Status: Open
+  Payment Status: Current
+
+Experian:
+  Balance: $1,200
+  Status: Open
+  Payment Status: Current
+```
+
+### 3. Sample Format
+
+Format đơn giản với dữ liệu inline:
+
+```
+Balance: $1,350.00 $1,150.00 $1,250.00
+Status: Open Open Open
+```
+
+### 4. Raw Data View Format
+
+Format với pipe separator:
+
+```
+TransUnion | PORTFOLIO RECOVERY | 99998888 | $900.00 | Collection | ...
+```
+
+### 5. Tabular Format với Header
+
+Format có header rõ ràng:
+
+```
+BUREAU COMPARISON
+| Item | TransUnion | Experian | Equifax |
+| Balance | $1,200 | $1,200 | $1,200 |
 ```
 
 ---
 
-## ⚠️ Discrepancy Detection
+## Cấu Trúc Code
 
-### Các Loại Discrepancies
+### 1. IdentityIqFullParser.php
 
-#### 1. INACCURATE_BALANCE
-**Phát hiện khi:** Balance khác nhau giữa các bureaus
+#### Main Methods
 
-**Ví dụ:**
-- TransUnion: $2,500.00
-- Experian: $2,550.00 ⚠️
-- Equifax: $2,500.00
+**`parseAndSave(Client $client, string $pdfPath, string $formatHint = 'auto')`**
 
-**Code:**
-```php
-$balances = array_filter(array_column($bureauData, 'balance'));
-if (count(array_unique($balances)) > 1) {
-    $flags[] = 'INACCURATE_BALANCE';
-}
-```
+- Entry point chính cho parsing
+- Xử lý transaction để đảm bảo data consistency
+- Parse và lưu: Credit Scores, Personal Profiles, Accounts
 
-#### 2. INACCURATE_DATE
-**Phát hiện khi:** Date last active khác nhau
+**`parseCreditScores(string $text)`**
 
-**Ví dụ:**
-- TransUnion: 2018-06-01
-- Experian: 2018-06-01
-- Equifax: 2018-05-01 ⚠️
+- Extract credit scores từ 3 bureaus
+- Hỗ trợ tabular format và inline format
+- Return: `['transunion' => score, 'experian' => score, 'equifax' => score]`
 
-**Code:**
-```php
-$dates = array_filter(array_column($bureauData, 'date_last_active'));
-if (count(array_unique($dates)) > 1) {
-    $flags[] = 'INACCURATE_DATE';
-}
-```
+**`parsePersonalProfiles(string $text)`**
 
-#### 3. STATUS_CONFLICT
-**Phát hiện khi:** Một bureau báo "Late" trong khi các bureau khác báo "Current"
+- Extract personal information (name, DOB, address, employer)
+- Hỗ trợ tabular format
+- Return: Array of profile data per bureau
 
-**Ví dụ:**
-- TransUnion: "Late 30 Days" ⚠️
-- Experian: "Current"
-- Equifax: "Current"
+**`parseAccounts(string $text)`**
 
-**Code:**
-```php
-$statuses = array_filter(array_column($bureauData, 'status'));
-$statusValues = array_map('strtolower', $statuses);
+- Extract tất cả credit accounts
+- Sử dụng multiple patterns để tìm accounts
+- Return: Array of account data
 
-$hasLate = false;
-$hasCurrent = false;
-foreach ($statusValues as $status) {
-    if (stripos($status, 'late') !== false || stripos($status, 'delinquent') !== false) {
-        $hasLate = true;
-    }
-    if (stripos($status, 'current') !== false || stripos($status, 'good') !== false) {
-        $hasCurrent = true;
-    }
-}
+**`extractAccountFullDetails(string $section, string $accountName, ?string $accountNumber)`**
 
-if ($hasLate && $hasCurrent) {
-    $flags[] = 'STATUS_CONFLICT';
-}
-```
+- Extract chi tiết cho một account cụ thể
+- Thử nhiều methods theo thứ tự ưu tiên:
+  1. `extractFromTable()` - Table format (ưu tiên cao nhất)
+  2. `extractFromInlineTable()` - Inline format
+  3. `extractFromRawDataView()` - Raw data view
+  4. `extractFromBracketedSection()` - Bracketed sections
+  5. `extractDirectlyFromTableRows()` - Fallback cho table rows
 
----
+**`createAccountItems(Client $client, array $accountData)`**
 
-## 💻 Usage & Examples
+- Tạo CreditItem records cho mỗi bureau
+- Đảm bảo tất cả 3 bureaus đều có records (kể cả khi không có data)
+- Xử lý duplicate detection
+- Normalize status và payment_status trước khi lưu
 
-### Basic Usage
+#### Extraction Methods
 
-```php
-use App\Services\CreditReportParserService;
+**`extractFromTable(string $section, string $bureau)`**
 
-$parserService = app(CreditReportParserService::class);
-$client = Client::find(1);
-$pdfPath = storage_path('app/credit-reports/report.pdf');
+- Parse table format với `|` separator
+- Hỗ trợ nhiều format:
+  - `|   | TransUnion | Experian | Equifax  |`
+  - `Account Status: | Open | Open | Open  |`
+  - `| Account Status: | Open | Open | Open  |`
+- Map field names: Account Status, Payment Status, Balance, etc.
 
-try {
-    $count = $parserService->parsePdfAndSave($client, $pdfPath);
-    echo "Imported {$count} items";
-} catch (\Exception $e) {
-    echo "Error: " . $e->getMessage();
-}
-```
+**`extractFromInlineTable(string $section, string $bureau)`**
 
-### IdentityIQ Full Parser
+- Parse format: `Balance: $1,350.00 $1,150.00 $1,250.00`
+- Xác định column index dựa trên bureau
 
-```php
-use App\Services\IdentityIqFullParser;
+**`extractFromRawDataView(string $section, string $bureau, string $accountName, ?string $accountNumber)`**
 
-$parser = new IdentityIqFullParser();
-$result = $parser->parseAndSave($client, $pdfPath);
+- Parse format: `TransUnion | ACCOUNT NAME | ACCOUNT# | $BALANCE | STATUS | REASON`
+- Xử lý line breaks trong data
 
-// Access results
-$scores = $result['scores']; // CreditScore model
-$profileCount = $result['personal_profiles']; // 3
-$accountCount = $result['accounts']; // 5
-$discrepancies = $result['discrepancies']; // Array of discrepancies
+**`extractFromBracketedSection(string $section, string $bureau)`**
 
-// Process discrepancies
-foreach ($discrepancies as $discrepancy) {
-    echo "Account: {$discrepancy['account_name']}\n";
-    echo "Flags: " . implode(', ', $discrepancy['flags']) . "\n";
-}
-```
+- Parse format: `[TransUnion Section] ... data ...`
 
-### Parse HTML (IdentityIQ Source)
+**`extractDirectlyFromTableRows(string $section, string $bureau)`**
 
-```php
-$htmlContent = '...'; // HTML source from IdentityIQ
-$count = $parserService->parseAndSave($client, $htmlContent);
-```
+- Fallback method để extract trực tiếp từ table rows
+- Sử dụng khi `extractFromTable()` không hoạt động
+- Parse từng row với pattern: `Field: | value1 | value2 | value3`
+
+### 2. DataNormalizer.php
+
+**`normalizeBalance(string $value)`**
+
+- Xử lý format: `$1,200.00`, `$1200`, `1200.00`
+- Loại bỏ ký tự đặc biệt
+- Convert về float
+
+**`normalizeStatus(?string $status)`**
+
+- Normalize status values: Open, Closed, Paid, etc.
+- Xử lý case-insensitive matching
+- Return standardized values
+
+**`normalizePaymentStatus(?string $status)`**
+
+- Normalize payment status: Current, Late 30 Days, Collection, etc.
+- Phân biệt với Account Status
 
 ---
 
-## 🐛 Troubleshooting
+## Các Vấn Đề Đã Gặp Và Giải Pháp
 
-### Không Parse Được Items
+### 1. Account Names Bị Cắt Ngắn
 
-**Symptoms:**
-- Return count = 0
-- Exception: "Could not parse any credit items from PDF"
+**Vấn đề:** Account names như "CHASE BANK USA" chỉ lấy được "CHAS"
 
-**Solutions:**
-
-#### Bước 1: Kiểm Tra Log File
-```bash
-# Windows PowerShell
-Get-Content storage/logs/laravel.log -Tail 200
-
-# Linux/Mac
-tail -f storage/logs/laravel.log
-```
-
-Tìm các dòng quan trọng:
-- `"Starting to parse accounts from PDF..."` - Parser đã bắt đầu
-- `"Pattern 1 found X matches"` - Số accounts tìm được
-- `"Total accounts found: X"` - Tổng số accounts
-- `"No accounts found in PDF. Text preview: ..."` - Text preview
-- `"Processing account: ..."` - Accounts đang được xử lý
-- `"Created X items for account ..."` - Số items được tạo
-
-#### Bước 2: Kiểm Tra Database Migrations
-**Lỗi thường gặp:** `Table 'credit_scores' doesn't exist` hoặc `Column 'account_type' not found`
+**Nguyên nhân:** Regex pattern sử dụng non-greedy quantifier (`?`)
 
 **Giải pháp:**
-```bash
-php artisan migrate:status  # Kiểm tra migrations
-php artisan migrate         # Chạy migrations nếu chưa chạy
-```
 
-**Migrations cần thiết:**
-- `create_credit_scores_table`
-- `create_personal_profiles_table`
-- `add_additional_fields_to_credit_items_table` (account_type, date_opened, high_limit, monthly_pay)
-- `add_date_last_active_and_past_due_to_credit_items_table`
+- Loại bỏ non-greedy quantifier trong pattern
+- Sử dụng pattern: `/(\d+)\.\s+([A-Z][A-Z\s&.,\-()]+?)(?:\s+(?:Account|Acct|#)[:\s]*([X\*\d\-]+))?/i`
+- Đảm bảo capture full account name trước khi match account number
 
-#### Bước 3: Kiểm Tra Text Preview
-Nếu log có "Text preview", kiểm tra:
-- Có chứa "CREDIT ACCOUNTS" hoặc "TRADE LINES" không?
-- Có chứa account names như "CHASE BANK", "MIDLAND CREDIT" không?
-- Format có đúng như expected không?
+### 2. Balance Hiển Thị $0.00
 
-#### Bước 4: Test Pattern Matching
+**Vấn đề:** Balance hiển thị $0.00 thay vì giá trị thực
+
+**Nguyên nhân:**
+
+- Không parse được inline table format: `Balance: $X $Y $Z`
+- Regex không handle commas trong số
+
+**Giải pháp:**
+
+- Implement `extractFromInlineTable()` method
+- Cải thiện `normalizeBalance()` để handle commas
+- Pattern: `/(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/`
+
+### 3. Credit Limit (High Limit) Sai
+
+**Vấn đề:** Credit limit hiển thị "$5.00" thay vì "$5,000"
+
+**Nguyên nhân:** Regex không capture đầy đủ số có commas
+
+**Giải pháp:**
+
+- Cải thiện regex pattern trong `extractAccountFullDetails()`
+- Sử dụng `normalizeBalance()` để xử lý commas
+- Pattern: `/\$?([\d,]+\.?\d*)/`
+
+### 4. Duplicate Accounts
+
+**Vấn đề:** Tạo nhiều records cho cùng một account
+
+**Nguyên nhân:** Duplicate check không đầy đủ
+
+**Giải pháp:**
+
+- Cải thiện duplicate check trong `createAccountItems()`
+- Check cả `account_name` và `account_number`
+- Sử dụng `where()` với closure để check multiple conditions
+
+### 5. Status Hiển Thị Nhiều Lần
+
+**Vấn đề:** Status field có giá trị như "Open Open Open"
+
+**Nguyên nhân:** Không normalize status trước khi lưu
+
+**Giải pháp:**
+
+- Sử dụng `DataNormalizer::normalizeStatus()` trước khi lưu
+- Đảm bảo chỉ lưu một giá trị status duy nhất
+
+### 6. Tabular Format Parsing Không Đúng
+
+**Vấn đề:** Không parse được table format với `|` separator
+
+**Nguyên nhân:** Pattern không match đúng format
+
+**Giải pháp:**
+
+- Cải thiện `extractFromTable()` method
+- Hỗ trợ nhiều pattern:
+  - `^\s*([^|:]+?):\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)(?:\s*\||\s*$)/i`
+  - Handle leading/trailing `|`
+  - Skip separator rows và header rows
+
+### 7. Account Names Có "Revolving" và "Auto Loan"
+
+**Vấn đề:** "Revolving" và "Auto Loan" được parse như account names
+
+**Nguyên nhân:** Không có blacklist cho account types
+
+**Giải pháp:**
+
+- Thêm blacklist trong `parseAccounts()`:
+  ```php
+  $blacklist = [
+   'REVOLVING', 'AUTO LOAN', 'INSTALLMENT',
+   'CREDIT CARD', 'COLLECTION AGENCY', etc.
+  ];
+  ```
+- Check nếu account name quá ngắn hoặc là common type thì skip
+
+### 8. Status và Payment Status Không Được Extract
+
+**Vấn đề:** Status và Payment Status không được extract từ table format
+
+**Nguyên nhân:**
+
+- `extractFromTable()` không được ưu tiên
+- Pattern matching không đúng
+
+**Giải pháp:**
+
+- Ưu tiên `extractFromTable()` trong `extractAccountFullDetails()`
+- Cải thiện pattern để match: `Account Status: | Open | Open | Open`
+- Thêm `extractDirectlyFromTableRows()` như fallback
+- Map field names đúng: "Account Status" → status, "Payment Status" → payment_status
+
+### 10. Nhầm Lẫn Giữa Các Cột (Column Index Calculation)
+
+**Vấn đề:** Account Status, Payment Status, Balance, High Limit bị nhầm lẫn giữa các cột
+
+**Nguyên nhân:**
+
+- Format PDF có empty first column: `|   | TransUnion | Experian | Equifax  |`
+- Data rows: `Account Status: | Open | Open | Open  |`
+- Column index calculation không đúng
+- Pattern matching không handle đúng format với/không có leading `|`
+
+**Giải pháp:**
+
+- Detect empty first column trong header row
+- Sử dụng nhiều patterns để match:
+  - Pattern 1: `| Account Status: | Open | Open | Open  |` (có leading `|`)
+  - Pattern 2: `Account Status: | Open | Open | Open  |` (không có leading `|`)
+- Column index calculation:
+  - TransUnion (index 0) → cells[2]
+  - Experian (index 1) → cells[3]
+  - Equifax (index 2) → cells[4]
+- ValueIndex = ColumnIndex + 2 (vì cells[0]=match, cells[1]=field name)
+- Thêm logging để debug column extraction
+
+### 9. Equifax Thiếu Accounts
+
+**Vấn đề:** Equifax chỉ có 1 account trong khi có nhiều accounts
+
+**Nguyên nhân:**
+
+- Logic trong `createAccountItems()` bỏ qua nếu không có `bureau_data`
+- Không tạo items cho bureaus không có explicit data
+
+**Giải pháp:**
+
+- Sửa logic trong `createAccountItems()` để luôn tạo items cho tất cả 3 bureaus
+- Sử dụng general `accountData` như fallback nếu không có `bureau_data`
+- Đảm bảo tất cả accounts xuất hiện cho tất cả bureaus (kể cả với empty data)
+
+---
+
+## Best Practices
+
+### 1. Text Normalization
+
+Luôn normalize text trước khi parse:
+
 ```php
-// Trong tinker
-php artisan tinker
-
-$parser = new \Smalot\PdfParser\Parser();
-$pdf = $parser->parseFile('path/to/file.pdf');
-$text = $pdf->getText();
-
-// Test pattern 1
-preg_match_all('/(\d+)\.\s+([A-Z][A-Z\s&]{3,}?)(?:\s+(?:Account|Acct|#)[:\s]*([X\*\d\-]+))?/i', $text, $matches);
-print_r($matches);
-
-// Test IdentityIQ format detection
-preg_match('/IdentityIQ|CREDIT SCORE DASHBOARD|PERSONAL PROFILE|CREDIT ACCOUNTS/i', $text);
+// Remove excessive line breaks
+$text = preg_replace('/\n{3,}/', "\n\n", $text);
+// Normalize spaces around line breaks
+$text = preg_replace('/\s*\n\s*/', "\n", $text);
 ```
 
-#### Bước 5: Verify PDF Format
-- PDF có phải scanned? → Cần OCR (check Tesseract installation)
-- PDF có text content? → Check với PDF reader
-- File name có ký tự đặc biệt? → Có thể gây lỗi path
+### 2. Multiple Extraction Methods
 
-### Parse Sai Data
+Luôn thử nhiều methods theo thứ tự ưu tiên:
 
-**Symptoms:**
-- Items được tạo nhưng data sai
-- Missing fields
-- Wrong bureau assignment
-- "Account has bureau_data: no"
+1. Table format (most reliable)
+2. Inline format
+3. Raw data view
+4. Bracketed sections
+5. Direct row extraction (fallback)
 
-**Solutions:**
+### 3. Data Validation
 
-1. **Check regex patterns:**
-   - Adjust patterns trong Strategy 4
-   - Test với regex tester
-   - Xem log để biết pattern nào match
+Validate và normalize data trước khi lưu:
 
-2. **Verify column positions:**
-   - Fixed-width: Check column alignment
-   - Adjust `detectColumnPositions()` logic
-   - Xem text preview để verify format
-
-3. **Improve extraction:**
-   - Add more patterns
-   - Improve account name extraction
-   - Check `extractAccountFullDetails()` method
-
-4. **Bureau Data Issues:**
-   - Log sẽ show: "Account has bureau_data: no"
-   - Kiểm tra format "Details by Bureau" trong text
-   - Có thể cần cải thiện `extractFromTable()`, `extractFromRawDataView()`
-
-### Accounts Tìm Được Nhưng Không Tạo Items
-
-**Symptoms:**
-- "Created 0 items for account ..."
-- Log shows accounts found but no items created
-
-**Solutions:**
-1. **Check `createAccountItems()` method:**
-   - Bureau_data có balance hoặc status không?
-   - Có thể duplicate check đang block
-
-2. **Check duplicate detection:**
-   - Item có thể đã tồn tại trong database
-   - Check unique key generation logic
-
-3. **Check database constraints:**
-   - Required fields có đầy đủ không?
-   - Foreign key constraints
-
-### OCR Issues
-
-**Symptoms:**
-- OCR fails
-- Poor text quality
-- "Tesseract OCR not found"
-
-**Solutions:**
-1. **Check Tesseract installation:**
-   ```bash
-   tesseract --version
-   ```
-   - Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
-   - Ubuntu: `sudo apt-get install tesseract-ocr poppler-utils`
-   - macOS: `brew install tesseract poppler`
-
-2. **Check OCR Service:**
-   - Log sẽ show: "Tesseract OCR not found. OCR functionality will be disabled."
-   - Service sẽ fallback về text extraction thông thường
-   - Không throw error, chỉ disable OCR
-
-3. **Improve image quality:**
-   - Increase DPI: `pdftoppm -r 300`
-   - Pre-process images
-   - Check PDF quality
-
-4. **Try alternative OCR:**
-   - Google Vision API
-   - AWS Textract
-   - Azure Computer Vision
-
-### Performance Issues
-
-**Symptoms:**
-- Parse quá chậm
-- Timeout
-
-**Solutions:**
-1. **Split large PDFs:**
-   - Parse từng page
-   - Process in background jobs
-
-2. **Optimize regex:**
-   - Reduce backtracking
-   - Use more specific patterns
-
-3. **Database optimization:**
-   - Add indexes
-   - Batch inserts
-
----
-
-## 📚 Best Practices
-
-### 1. Error Handling
-- Luôn wrap trong try-catch
-- Log chi tiết từng bước
-- Graceful fallback giữa các strategies
-
-### 2. Logging
 ```php
-Log::info("Parsing PDF for client {$client->id}");
-Log::info("Strategy 1 found {$count} items");
-Log::warning("Failed to parse item: {$error}");
-Log::error("Critical error: {$exception->getMessage()}");
+$normalizedStatus = $this->normalizer->normalizeStatus($status);
+$normalizedPaymentStatus = $this->normalizePaymentStatus($paymentStatus);
 ```
 
-### 3. Validation
-- Validate input PDF exists
-- Check file size
-- Verify PDF format
+### 4. Error Handling
 
-### 4. Testing
-- Test với nhiều format khác nhau
-- Test với edge cases (empty PDF, corrupted PDF)
-- Test với scanned PDFs
+Sử dụng try-catch và logging:
 
-### 5. Monitoring
-- Track parsing success rate
-- Monitor discrepancy detection
-- Alert on parsing failures
-
----
-
-## 📁 File Structure
-
-```
-app/
-├── Services/
-│   ├── CreditReportParserService.php       # Main parser service
-│   ├── IdentityIqFullParser.php            # IdentityIQ specialized parser
-│   └── PdfParsing/
-│       ├── DataNormalizer.php              # Data normalization
-│       ├── TesseractOcrService.php         # OCR service
-│       ├── OcrServiceInterface.php         # OCR interface
-│       ├── PdfParserStrategyInterface.php  # Strategy interface
-│       └── IdentityIqStructuredParser.php  # IdentityIQ structured parser
-├── Models/
-│   ├── CreditItem.php                      # Credit items model
-│   ├── CreditScore.php                     # Credit scores model
-│   └── PersonalProfile.php                 # Personal profiles model
-database/
-└── migrations/
-    ├── create_credit_items_table.php
-    ├── create_credit_scores_table.php
-    ├── create_personal_profiles_table.php
-    ├── add_additional_fields_to_credit_items_table.php  # account_type, date_opened, high_limit, monthly_pay
-    └── add_date_last_active_and_past_due_to_credit_items_table.php
+```php
+try {
+// Parse logic
+} catch (\Exception $e) {
+Log::warning("Failed to parse: " . $e->getMessage());
+// Continue with other data
+}
 ```
 
-## 🗄️ Database Schema
+### 5. Transaction Management
 
-### CreditItems Table
-- `id`, `client_id`, `bureau`, `account_name`, `account_number`
-- `account_type` (nullable) - Credit Card, Loan, Collection Agency, etc.
-- `date_opened` (nullable) - Date account was opened
-- `date_last_active` (nullable) - Last activity date
-- `date_reported` (nullable) - Date reported to bureau
-- `balance`, `high_limit` (nullable), `monthly_pay` (nullable), `past_due` (nullable)
-- `status`, `reason`, `dispute_status`
+Sử dụng database transaction:
 
-### CreditScores Table
-- `id`, `client_id`
-- `transunion_score`, `experian_score`, `equifax_score` (nullable)
-- `report_date` (nullable), `reference_number` (nullable)
+```php
+DB::beginTransaction();
+try {
+// Save data
+    DB::commit();
+} catch (\Exception $e) {
+    DB::rollBack();
+    throw $e;
+}
+```
 
-### PersonalProfiles Table
-- `id`, `client_id`, `bureau` (nullable)
-- `name`, `date_of_birth`, `current_address`, `previous_address`, `employer`
-- `date_reported` (nullable)
+### 6. Duplicate Detection
 
----
+Luôn check duplicate trước khi tạo records:
 
-## 🎯 Summary
+```php
+$exists = CreditItem::where('client_id', $client->id)
+->where('bureau', $bureau)
+->where('account_name', $accountName)
+->where('account_number', $accountNumber)
+->exists();
+```
 
-### Hệ Thống Hiện Tại Có Thể:
+### 7. Logging
 
-✅ **Parse 7 định dạng PDF khác nhau** với strategies tự động
-✅ **Xử lý scanned PDFs** với OCR support
-✅ **Extract đầy đủ thông tin** từ IdentityIQ reports:
-   - Credit Scores (3 bureaus)
-   - Personal Profiles với variations
-   - Accounts với bureau-specific data
-✅ **Detect discrepancies** tự động (balance, date, status conflicts)
-✅ **Normalize data** từ nhiều nguồn
-✅ **Deduplicate** thông minh
-✅ **Handle masked accounts** (XXXX1234, 1234****)
+Log đầy đủ để debug:
 
-### Kết Quả:
-
-Với file PDF IdentityIQ 3 trang, hệ thống sẽ:
-1. Extract Credit Scores: `{transunion: 645, experian: 650, equifax: 620}`
-2. Extract Personal Profiles: 3 profiles với tất cả variations
-3. Extract Accounts: Với data riêng cho từng bureau
-4. Detect Discrepancies: Tự động flag các lỗi
-5. Save tất cả vào database
-
-**Status: ✅ Production Ready!**
+```php
+Log::info("Extracted account: {$accountName}");
+Log::debug("Table extraction - Field: {$fieldName}, Bureau: {$bureau}, Value: {$value}");
+Log::warning("Could not extract bureau data for {$bureau}");
+```
 
 ---
 
-## 📝 Changelog
+## Hướng Dẫn Debug
 
-### Version 2.1 (2025-12-20)
-- ✅ Fixed database migrations issues
-- ✅ Improved error handling for partial data
-- ✅ Enhanced logging for debugging
-- ✅ Fixed Filament redirect issue
-- ✅ Added alternative parsing method for known account names
+### 1. Enable Logging
 
-### Version 2.0 (2025-12-20)
-- ✅ Added IdentityIQ Full Parser (Strategy 7)
-- ✅ Added OCR support with Tesseract
-- ✅ Added Data Normalization layer
-- ✅ Improved deduplication logic
-- ✅ Added Credit Scores and Personal Profiles models
-- ✅ Added discrepancy detection
+Kiểm tra `storage/logs/laravel.log` để xem:
 
-### Version 1.0
-- ✅ Initial 6 parsing strategies
-- ✅ Basic PDF parsing functionality
+- Accounts được extract
+- Bureau data được tìm thấy
+- Errors và warnings
+
+### 2. Debug Specific Account
+
+Thêm logging trong `extractAccountFullDetails()`:
+
+```php
+Log::debug("Extracting account: {$accountName} (#{$accountNumber})");
+Log::debug("Account section: " . substr($accountSection, 0, 500));
+```
+
+### 3. Debug Table Extraction
+
+Thêm logging trong `extractFromTable()`:
+
+```php
+Log::debug("Table extraction - Field: {$fieldName}, Bureau: {$bureau}, Value: {$value}");
+Log::debug("All cells: [TU={$cells[2]}, EXP={$cells[3]}, EQ={$cells[4]}]");
+```
+
+### 4. Test với Sample PDF
+
+1. Upload PDF vào admin panel
+2. Check logs trong `storage/logs/laravel.log`
+3. Verify data trong database
+4. Compare với PDF gốc
+
+### 5. Common Issues Checklist
+
+- [ ] Account names có đúng không?
+- [ ] Balance có đúng không?
+- [ ] Status và Payment Status có được extract không?
+- [ ] Tất cả 3 bureaus có data không?
+- [ ] Có duplicate accounts không?
+- [ ] Account types có bị parse như account names không?
 
 ---
 
-**Last Updated:** 2025-12-20
-**Version:** 2.1
-**Main Documentation File:** `PDF_PARSING_COMPLETE_GUIDE.md`
+## Lưu Ý Quan Trọng
 
+### 1. Account Name Blacklist
+
+**QUAN TRỌNG:** Luôn check blacklist trước khi tạo account:
+
+- "Revolving", "Auto Loan", "Installment" không phải account names
+- "CREDIT ACCOUNTS", "TRADE LINES" là headers, không phải accounts
+
+### 2. Status vs Payment Status
+
+**QUAN TRỌNG:** Phân biệt rõ:
+
+- **Account Status:** Open, Closed, Paid (trạng thái account)
+- **Payment Status:** Current, Late 30 Days, Collection (trạng thái thanh toán)
+
+Map đúng trong `extractFromTable()`:
+
+```php
+if (stripos($fieldName, 'payment status') !== false) {
+    $bureauData['payment_status'] = trim($value);
+} elseif (stripos($fieldName, 'account status') !== false) {
+    $bureauData['status'] = trim($value);
+}
+```
+
+### 3. Table Format Priority
+
+**QUAN TRỌNG:** Luôn ưu tiên table format:
+
+- Table format là format phổ biến nhất và đáng tin cậy nhất
+- Nếu detect được table format, sử dụng nó trước các format khác
+
+### 4. Bureau Data Fallback
+
+**QUAN TRỌNG:** Đảm bảo tất cả bureaus có records:
+
+- Nếu không có `bureau_data` cho một bureau, vẫn tạo record với general data
+- Điều này đảm bảo tất cả accounts xuất hiện cho tất cả bureaus
+
+### 5. Column Index Calculation
+
+**QUAN TRỌNG:** Tính đúng column index:
+
+- TransUnion = index 0 → cells[2] (nếu có empty first column) hoặc cells[1]
+- Experian = index 1 → cells[3] hoặc cells[2]
+- Equifax = index 2 → cells[4] hoặc cells[3]
+
+### 6. Pattern Matching
+
+**QUAN TRỌNG:** Sử dụng non-greedy quantifiers khi cần:
+
+- `([^|]+?)` thay vì `([^|]+)` để tránh capture quá nhiều
+- Nhưng không dùng cho account names (cần capture full name)
+
+### 7. Date Parsing
+
+**QUAN TRỌNG:** Xử lý nhiều format date:
+
+- `01/15/2020` (MM/DD/YYYY)
+- `2020-01-15` (YYYY-MM-DD)
+- `Jan 15, 2020` (Text format)
+
+---
+
+## Các Thay Đổi Quan Trọng
+
+### Version 1.0 (Initial)
+
+- Basic PDF parsing
+- Support tabular format
+- Extract credit scores, profiles, accounts
+
+### Version 1.1 (Account Name Fix)
+
+- Fix account names bị cắt ngắn
+- Improve regex patterns
+- Better duplicate detection
+
+### Version 1.2 (Balance Fix)
+
+- Fix balance extraction
+- Support inline table format
+- Improve normalizeBalance()
+
+### Version 1.3 (Status Fix)
+
+- Fix status và payment status extraction
+- Improve extractFromTable()
+- Add extractDirectlyFromTableRows()
+
+### Version 1.4 (Account Type Blacklist)
+
+- Add blacklist cho account types
+- Prevent "Revolving", "Auto Loan" được parse như account names
+- Improve account name validation
+
+### Version 1.5 (Equifax Fix)
+
+- Fix missing Equifax accounts
+- Ensure all bureaus have records
+- Improve createAccountItems() logic
+
+### Version 1.6 (Current)
+
+- Complete table format support
+- Multiple extraction methods với priority
+- Comprehensive error handling và logging
+- Full support cho tất cả format PDF
+
+### Version 1.7 (Column Index Fix)
+
+- Fix column index calculation cho table format
+- Handle empty first column trong header row
+- Improve pattern matching để handle cả format có/không có leading `|`
+- Fix nhầm lẫn giữa các cột (Account Status, Payment Status, Balance, High Limit)
+- Enhanced logging để debug column extraction
+
+---
+
+## Testing Checklist
+
+Khi test parser, verify:
+
+- [ ] Credit Scores được extract đúng cho 3 bureaus
+- [ ] Personal Profiles được extract đúng
+- [ ] Tất cả accounts được extract (không bỏ sót)
+- [ ] Account names đúng (không có "Revolving", "Auto Loan")
+- [ ] Balance đúng (không có $0.00 sai)
+- [ ] Credit Limit đúng (không có $5.00 thay vì $5,000)
+- [ ] Status được extract và normalize đúng
+- [ ] Payment Status được extract và normalize đúng
+- [ ] Tất cả 3 bureaus có records cho mỗi account
+- [ ] Không có duplicate accounts
+- [ ] Date formats được parse đúng
+- [ ] Special characters được handle đúng
+
+---
+
+## Future Improvements
+
+### 1. Machine Learning
+
+- Sử dụng ML để detect format tự động
+- Improve accuracy của extraction
+
+### 2. OCR Support
+
+- Support cho scanned PDFs
+- Extract từ images
+
+### 3. More Format Support
+
+- Support thêm các format khác từ các providers khác
+- Generic parser cho multiple providers
+
+### 4. Performance Optimization
+
+- Cache parsed results
+- Parallel processing cho multiple accounts
+- Optimize regex patterns
+
+### 5. Better Error Recovery
+
+- Auto-retry với different methods
+- Suggest fixes cho common errors
+- Better error messages
+
+---
+
+## Contact & Support
+
+Nếu gặp vấn đề với PDF parsing:
+
+1. Check logs trong `storage/logs/laravel.log`
+2. Verify PDF format matches supported formats
+3. Test với sample PDFs
+4. Check database records
+5. Review code changes trong version history
+
+---
+
+**Last Updated:** 2025-01-XX
+**Version:** 1.6
+**Maintainer:** Development Team

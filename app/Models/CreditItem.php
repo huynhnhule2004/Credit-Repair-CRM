@@ -29,8 +29,10 @@ class CreditItem extends Model
         'high_limit',
         'monthly_pay',
         'past_due',
+        'payment_history',
         'reason',
         'status',
+        'payment_status',
         'dispute_status',
     ];
 
